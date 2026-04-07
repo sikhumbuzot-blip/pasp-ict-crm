@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logs - Sales CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/custom.css}" rel="stylesheet">
+</head>
+<body>
+    <div th:replace="~{layout/base :: navbar}"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{layout/base :: sidebar}"></div>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="fas fa-list-alt me-2"></i>
+                        Audit Logs
+                    </h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <a href="/admin/security-incidents" class="btn btn-outline-danger">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                Security Incidents
+                            </a>
+                            <a href="/admin/backups" class="btn btn-outline-primary">
+                                <i class="fas fa-database me-1"></i>
+                                Backup Management
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-filter me-2"></i>
+                            Filter Logs
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="get" th:action="@{/admin/audit-logs}">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="action" class="form-label">Action</label>
+                                    <select class="form-select" id="action" name="action">
+                                        <option value="">All Actions</option>
+                                        <option value="LOGIN" th:selected="${action == 'LOGIN'}">Login Events</option>
+                                        <option value="DATA_ACCESS" th:selected="${action == 'DATA_ACCESS'}">Data Access</option>
+                                        <option value="ADMIN" th:selected="${action == 'ADMIN'}">Admin Actions</option>
+                                        <option value="SECURITY" th:selected="${action == 'SECURITY'}">Security Events</option>
+                                        <option value="SESSION" th:selected="${action == 'SESSION'}">Session Events</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="entityType" class="form-label">Entity Type</label>
+                                    <select class="form-select" id="entityType" name="entityType">
+                                        <option value="">All Types</option>
+                                        <option value="USER" th:selected="${entityType == 'USER'}">User</option>
+                                        <option value="CUSTOMER" th:selected="${entityType == 'CUSTOMER'}">Customer</option>
+                                        <option value="LEAD" th:selected="${entityType == 'LEAD'}">Lead</option>
+                                        <option value="SALE" th:selected="${entityType == 'SALE'}">Sale Transaction</option>
+                                        <option value="AUTHENTICATION" th:selected="${entityType == 'AUTHENTICATION'}">Authentication</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="hours" class="form-label">Time Period</label>
+                                    <select class="form-select" id="hours" name="hours">
+                                        <option value="1" th:selected="${hours == 1}">Last Hour</option>
+                                        <option value="6" th:selected="${hours == 6}">Last 6 Hours</option>
+                                        <option value="24" th:selected="${hours == 24}">Last 24 Hours</option>
+                                        <option value="72" th:selected="${hours == 72}">Last 3 Days</option>
+                                        <option value="168" th:selected="${hours == 168}">Last Week</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary me-2">
+                                        <i class="fas fa-search me-1"></i>
+                                        Filter
+                                    </button>
+                                    <a href="/admin/audit-logs" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>
+                                        Clear
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Audit Logs Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            System Activity
+                            <span class="badge bg-secondary ms-2" th:text="${#lists.size(auditLogs)}">0</span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Entity</th>
+                                        <th>IP Address</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:if="${#lists.isEmpty(auditLogs)}">
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            No audit logs found for the selected criteria
+                                        </td>
+                                    </tr>
+                                    <tr th:each="log : ${auditLogs}" 
+                                        th:class="${log.action.contains('SECURITY') or log.action.contains('UNAUTHORIZED') or log.action.contains('VIOLATION') ? 'table-danger' : 
+                                                  (log.action.contains('LOGIN_FAILURE') ? 'table-warning' : '')}">
+                                        <td>
+                                            <small th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}">2024-01-01 12:00:00</small>
+                                        </td>
+                                        <td>
+                                            <span th:if="${log.user != null}" th:text="${log.user.username}">username</span>
+                                            <span th:if="${log.user == null}" class="text-muted">System</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:class="${log.action.contains('SUCCESS') ? 'bg-success' : 
+                                                            (log.action.contains('FAILURE') or log.action.contains('VIOLATION') ? 'bg-danger' : 
+                                                            (log.action.contains('WARNING') or log.action.contains('UNAUTHORIZED') ? 'bg-warning' : 'bg-primary'))}"
+                                                  th:text="${log.action}">ACTION</span>
+                                        </td>
+                                        <td>
+                                            <small th:text="${log.entityType}">ENTITY_TYPE</small>
+                                            <span th:if="${log.entityId != null}" class="text-muted">
+                                                (#<span th:text="${log.entityId}">1</span>)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small th:text="${log.ipAddress ?: 'N/A'}">192.168.1.1</small>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small th:text="${#strings.abbreviate(log.newValues ?: log.oldValues ?: 'No details', 50)}">Details...</small>
+                                                <button class="btn btn-sm btn-outline-info" 
+                                                        th:onclick="'showLogDetails(' + ${log.id} + ')'"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#logDetailsModal">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Log Details Modal -->
+    <div class="modal fade" id="logDetailsModal" tabindex="-1" aria-labelledby="logDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="logDetailsModalLabel">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Audit Log Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="logDetailsContent">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/common.js}"></script>
+    <script th:inline="javascript">
+        const auditLogs = /*[[${auditLogs}]]*/ [];
+        
+        function showLogDetails(logId) {
+            const log = auditLogs.find(l => l.id === logId);
+            if (!log) {
+                document.getElementById('logDetailsContent').innerHTML = '<p class="text-danger">Log details not found.</p>';
+                return;
+            }
+            
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>ID:</strong></td><td>${log.id}</td></tr>
+                            <tr><td><strong>Timestamp:</strong></td><td>${new Date(log.timestamp).toLocaleString()}</td></tr>
+                            <tr><td><strong>Action:</strong></td><td><span class="badge bg-primary">${log.action}</span></td></tr>
+                            <tr><td><strong>Entity Type:</strong></td><td>${log.entityType}</td></tr>
+                            <tr><td><strong>Entity ID:</strong></td><td>${log.entityId || 'N/A'}</td></tr>
+                            <tr><td><strong>User:</strong></td><td>${log.user ? log.user.username : 'System'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Network Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>IP Address:</strong></td><td>${log.ipAddress || 'N/A'}</td></tr>
+                            <tr><td><strong>User Agent:</strong></td><td><small>${log.userAgent || 'N/A'}</small></td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Change Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Old Values:</strong></label>
+                                <textarea class="form-control" rows="4" readonly>${log.oldValues || 'N/A'}</textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>New Values:</strong></label>
+                                <textarea class="form-control" rows="4" readonly>${log.newValues || 'N/A'}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('logDetailsContent').innerHTML = content;
+        }
+    </script>
+</body>
+</html>

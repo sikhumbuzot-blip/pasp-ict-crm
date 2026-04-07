@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Sales Metrics - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-bar-chart"></i> Sales Metrics
+                        </h1>
+                        <p class="text-muted mb-0">Your personal sales performance and analytics</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary" onclick="refreshMetrics()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Performance Indicators -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card metric-card h-100">
+                    <div class="card-body text-center">
+                        <div class="metric-value" th:text="${metrics?.totalSales ?: 0}">0</div>
+                        <h6 class="card-title mb-0">Total Sales</h6>
+                        <small class="opacity-75">All time</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card metric-card h-100">
+                    <div class="card-body text-center">
+                        <div class="metric-value">
+                            $<span th:text="${#numbers.formatDecimal(metrics?.totalRevenue ?: 0, 0, 'COMMA', 0, 'POINT')}">0</span>
+                        </div>
+                        <h6 class="card-title mb-0">Total Revenue</h6>
+                        <small class="opacity-75">All time</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card metric-card h-100">
+                    <div class="card-body text-center">
+                        <div class="metric-value" th:text="${metrics?.activeLeads ?: 0}">0</div>
+                        <h6 class="card-title mb-0">Active Leads</h6>
+                        <small class="opacity-75">In pipeline</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card metric-card h-100">
+                    <div class="card-body text-center">
+                        <div class="metric-value">
+                            <span th:text="${#numbers.formatDecimal(metrics?.conversionRate ?: 0, 0, 'COMMA', 1, 'POINT')}">0.0</span>%
+                        </div>
+                        <h6 class="card-title mb-0">Conversion Rate</h6>
+                        <small class="opacity-75">Leads to sales</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Performance -->
+        <div class="row mb-4">
+            <div class="col-xl-4 col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-calendar-month"></i> This Month
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h4 text-success" th:text="${metrics?.monthSales ?: 0}">0</div>
+                                <small class="text-muted">Sales</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h4 text-info">
+                                    $<span th:text="${#numbers.formatDecimal(metrics?.monthRevenue ?: 0, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                </div>
+                                <small class="text-muted">Revenue</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h5" th:text="${metrics?.monthLeads ?: 0}">0</div>
+                                <small class="text-muted">New Leads</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h5">
+                                    $<span th:text="${#numbers.formatDecimal(metrics?.averageSale ?: 0, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                </div>
+                                <small class="text-muted">Avg Sale</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-4 col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-trophy"></i> Goals & Targets
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <small>Monthly Sales Target</small>
+                                <small><span th:text="${metrics?.monthSales ?: 0}">0</span> / <span th:text="${metrics?.salesTarget ?: 10}">10</span></small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" 
+                                     role="progressbar" 
+                                     th:style="'width: ' + ${(metrics?.monthSales ?: 0) * 100 / (metrics?.salesTarget ?: 10)} + '%'"
+                                     th:aria-valuenow="${(metrics?.monthSales ?: 0) * 100 / (metrics?.salesTarget ?: 10)}"
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <small>Revenue Target</small>
+                                <small>$<span th:text="${#numbers.formatDecimal(metrics?.monthRevenue ?: 0, 0, 'COMMA', 0, 'POINT')}">0</span> / $<span th:text="${#numbers.formatDecimal(metrics?.revenueTarget ?: 50000, 0, 'COMMA', 0, 'POINT')}">50,000</span></small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" 
+                                     role="progressbar" 
+                                     th:style="'width: ' + ${(metrics?.monthRevenue ?: 0) * 100 / (metrics?.revenueTarget ?: 50000)} + '%'"
+                                     th:aria-valuenow="${(metrics?.monthRevenue ?: 0) * 100 / (metrics?.revenueTarget ?: 50000)}"
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <small class="text-muted">
+                                <span th:text="${30 - #temporals.day(#temporals.createNow())}">15</span> days remaining
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-4 col-md-12 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-funnel"></i> Pipeline Health
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>New</small>
+                                <small><span th:text="${metrics?.pipelineNew ?: 0}">0</span> leads</small>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-primary" style="width: 25%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>Qualified</small>
+                                <small><span th:text="${metrics?.pipelineQualified ?: 0}">0</span> leads</small>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-warning" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>Proposal</small>
+                                <small><span th:text="${metrics?.pipelineProposal ?: 0}">0</span> leads</small>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-secondary" style="width: 60%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between">
+                                <small>Negotiation</small>
+                                <small><span th:text="${metrics?.pipelineNegotiation ?: 0}">0</span> leads</small>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-dark" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        <div class="text-center">
+                            <strong>Pipeline Value: $<span th:text="${#numbers.formatDecimal(metrics?.pipelineValue ?: 0, 0, 'COMMA', 0, 'POINT')}">0</span></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i> Sales Trend (Last 6 Months)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="salesTrendChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-pie-chart"></i> Lead Sources
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="leadSourceChart" width="300" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history"></i> Recent Sales
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush" th:if="${metrics?.recentSales}">
+                            <div class="list-group-item d-flex justify-content-between align-items-center" 
+                                 th:each="sale : ${metrics.recentSales}">
+                                <div>
+                                    <strong th:text="${sale.customer?.name}">Customer</strong>
+                                    <br>
+                                    <small class="text-muted" th:text="${#temporals.format(sale.saleDate, 'MMM dd, yyyy')}">Date</small>
+                                </div>
+                                <span class="badge bg-success">
+                                    $<span th:text="${#numbers.formatDecimal(sale.amount, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div th:unless="${metrics?.recentSales}" class="text-center text-muted py-3">
+                            <i class="bi bi-receipt"></i>
+                            <br>
+                            <small>No recent sales</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> Action Required
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center" 
+                                 th:if="${metrics?.overdueLeads > 0}">
+                                <div>
+                                    <strong>Overdue Follow-ups</strong>
+                                    <br>
+                                    <small class="text-muted">Leads requiring attention</small>
+                                </div>
+                                <span class="badge bg-danger" th:text="${metrics.overdueLeads}">0</span>
+                            </div>
+                            
+                            <div class="list-group-item d-flex justify-content-between align-items-center"
+                                 th:if="${metrics?.hotLeads > 0}">
+                                <div>
+                                    <strong>Hot Leads</strong>
+                                    <br>
+                                    <small class="text-muted">Ready for proposal</small>
+                                </div>
+                                <span class="badge bg-warning" th:text="${metrics.hotLeads}">0</span>
+                            </div>
+                            
+                            <div class="list-group-item d-flex justify-content-between align-items-center"
+                                 th:if="${metrics?.newLeads > 0}">
+                                <div>
+                                    <strong>New Leads</strong>
+                                    <br>
+                                    <small class="text-muted">Require initial contact</small>
+                                </div>
+                                <span class="badge bg-info" th:text="${metrics.newLeads}">0</span>
+                            </div>
+                        </div>
+                        
+                        <div th:if="${(metrics?.overdueLeads ?: 0) == 0 and (metrics?.hotLeads ?: 0) == 0 and (metrics?.newLeads ?: 0) == 0}" 
+                             class="text-center text-muted py-3">
+                            <i class="bi bi-check-circle text-success"></i>
+                            <br>
+                            <small>All caught up!</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Initialize charts when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeSalesTrendChart();
+                initializeLeadSourceChart();
+            });
+
+            // Sales trend chart
+            function initializeSalesTrendChart() {
+                const ctx = document.getElementById('salesTrendChart').getContext('2d');
+                
+                // Sample data - in real implementation, this would come from the controller
+                const salesData = [
+                    { month: 'Jan', sales: 5, revenue: 25000 },
+                    { month: 'Feb', sales: 8, revenue: 40000 },
+                    { month: 'Mar', sales: 6, revenue: 30000 },
+                    { month: 'Apr', sales: 12, revenue: 60000 },
+                    { month: 'May', sales: 10, revenue: 50000 },
+                    { month: 'Jun', sales: /*[[${metrics?.monthSales ?: 7}]]*/ 7, revenue: /*[[${metrics?.monthRevenue ?: 35000}]]*/ 35000 }
+                ];
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: salesData.map(d => d.month),
+                        datasets: [{
+                            label: 'Sales Count',
+                            data: salesData.map(d => d.sales),
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Revenue ($)',
+                            data: salesData.map(d => d.revenue),
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Sales Count'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Revenue ($)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Lead source chart
+            function initializeLeadSourceChart() {
+                const ctx = document.getElementById('leadSourceChart').getContext('2d');
+                
+                // Sample data - in real implementation, this would come from the controller
+                const sourceData = {
+                    'Website': /*[[${metrics?.sourceWebsite ?: 15}]]*/ 15,
+                    'Referral': /*[[${metrics?.sourceReferral ?: 25}]]*/ 25,
+                    'Cold Call': /*[[${metrics?.sourceColdCall ?: 10}]]*/ 10,
+                    'Social Media': /*[[${metrics?.sourceSocial ?: 20}]]*/ 20,
+                    'Other': /*[[${metrics?.sourceOther ?: 5}]]*/ 5
+                };
+                
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(sourceData),
+                        datasets: [{
+                            data: Object.values(sourceData),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 205, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)',
+                                'rgba(153, 102, 255, 0.8)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Refresh metrics
+            function refreshMetrics() {
+                fetch('/sales/api/metrics', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateMetricsDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error refreshing metrics:', error);
+                });
+            }
+
+            function updateMetricsDisplay(data) {
+                // Update KPI cards
+                document.querySelector('.metric-value').textContent = data.totalSales || 0;
+                // Add more updates as needed
+                
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = `
+                    <i class="bi bi-check-circle"></i>
+                    Metrics updated successfully
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('main').insertBefore(alert, document.querySelector('main').firstChild);
+                
+                // Auto-dismiss after 3 seconds
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, 3000);
+            }
+
+            // Auto-refresh every 5 minutes
+            setInterval(refreshMetrics, 300000);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // R key to refresh
+                if (e.key === 'r' || e.key === 'R') {
+                    if (!e.ctrlKey && !e.metaKey) {
+                        e.preventDefault();
+                        refreshMetrics();
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

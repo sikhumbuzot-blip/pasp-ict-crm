@@ -1,0 +1,76 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Logs ###
+logs/
+*.log
+
+### Database ###
+*.db
+*.mv.db
+*.trace.db
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Application Specific ###
+application-local.properties
+*.pid
+
+### Backup Files ###
+backups/
+*.backup
+*.bak
+
+### Security ###
+.env
+*.key
+*.pem
+*.p12
+*.jks
+
+### Testing ###
+.jqwik-database
+test-output/
+coverage/
+
+### Maven ###
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+### Spring Boot ###
+spring-boot-*.log
+application-*.yml
+application-*.yaml

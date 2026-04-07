@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Lead Management - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-person-plus"></i> Lead Management
+                        </h1>
+                        <p class="text-muted mb-0">Manage your sales leads and track their progress through the pipeline</p>
+                    </div>
+                    <div>
+                        <a href="/sales/leads/create" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Create New Lead
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" th:action="@{/sales/leads}" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="search" class="form-label">Search Leads</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="search" 
+                                           name="search" 
+                                           placeholder="Search by title, customer, or description..."
+                                           th:value="${searchTerm}">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="status" class="form-label">Filter by Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    <option th:each="status : ${leadStatuses}" 
+                                            th:value="${status}" 
+                                            th:text="${status.name()}"
+                                            th:selected="${selectedStatus == status}">Status</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-outline-primary">
+                                        <i class="bi bi-funnel"></i> Apply Filters
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <a href="/sales/leads" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i> Clear
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-list"></i> 
+                                Leads 
+                                <span class="badge bg-primary ms-2" th:text="${leads?.size() ?: 0}">0</span>
+                            </h5>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="exportLeads('csv')">
+                                    <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="exportLeads('pdf')">
+                                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" th:if="${leads and !leads.empty}">
+                            <table class="table table-hover" id="leadsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>
+                                            <input type="checkbox" class="form-check-input" id="selectAll">
+                                        </th>
+                                        <th>Lead Details</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Estimated Value</th>
+                                        <th>Assigned To</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="lead : ${leads}">
+                                        <td>
+                                            <input type="checkbox" class="form-check-input lead-checkbox" th:value="${lead.id}">
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong th:text="${lead.title}">Lead Title</strong>
+                                                <br>
+                                                <small class="text-muted" th:text="${lead.description ?: 'No description'}">Description</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong th:text="${lead.customer?.name}">Customer Name</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-building"></i>
+                                                    <span th:text="${lead.customer?.company ?: 'No company'}">Company</span>
+                                                </small>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-envelope"></i>
+                                                    <span th:text="${lead.customer?.email}">email@example.com</span>
+                                                </small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge status-badge" 
+                                                  th:classappend="${lead.status.name() == 'NEW' ? 'bg-primary' : 
+                                                                   lead.status.name() == 'CONTACTED' ? 'bg-info' :
+                                                                   lead.status.name() == 'QUALIFIED' ? 'bg-warning' :
+                                                                   lead.status.name() == 'PROPOSAL' ? 'bg-secondary' :
+                                                                   lead.status.name() == 'NEGOTIATION' ? 'bg-dark' :
+                                                                   lead.status.name() == 'CLOSED_WON' ? 'bg-success' : 'bg-danger'}"
+                                                  th:text="${lead.status.name()}">Status</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${lead.estimatedValue}">
+                                                <strong class="text-success">
+                                                    $<span th:text="${#numbers.formatDecimal(lead.estimatedValue, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                                </strong>
+                                            </span>
+                                            <span th:unless="${lead.estimatedValue}" class="text-muted">Not specified</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${lead.assignedTo}">
+                                                <i class="bi bi-person"></i>
+                                                <span th:text="${lead.assignedTo.firstName + ' ' + lead.assignedTo.lastName}">Assigned User</span>
+                                            </span>
+                                            <span th:unless="${lead.assignedTo}" class="text-muted">Unassigned</span>
+                                        </td>
+                                        <td>
+                                            <span th:text="${#temporals.format(lead.createdAt, 'MMM dd, yyyy')}">Date</span>
+                                            <br>
+                                            <small class="text-muted" th:text="${#temporals.format(lead.createdAt, 'HH:mm')}">Time</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a th:href="@{/sales/leads/{id}(id=${lead.id})}" 
+                                                   class="btn btn-outline-primary" 
+                                                   title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button type="button" 
+                                                            class="btn btn-outline-secondary dropdown-toggle" 
+                                                            data-bs-toggle="dropdown" 
+                                                            title="Quick Actions">
+                                                        <i class="bi bi-three-dots"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" th:href="@{/sales/leads/{id}(id=${lead.id})}">
+                                                                <i class="bi bi-eye"></i> View Details
+                                                            </a>
+                                                        </li>
+                                                        <li th:if="${!lead.closed}">
+                                                            <a class="dropdown-item" th:href="@{/sales/leads/{id}/convert(id=${lead.id})}">
+                                                                <i class="bi bi-arrow-right-circle"></i> Convert to Sale
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li th:if="${lead.status.name() == 'NEW'}">
+                                                            <a class="dropdown-item" href="#" 
+                                                               th:onclick="'updateLeadStatus(' + ${lead.id} + ', \'CONTACTED\')'">
+                                                                <i class="bi bi-telephone"></i> Mark as Contacted
+                                                            </a>
+                                                        </li>
+                                                        <li th:if="${lead.status.name() == 'CONTACTED'}">
+                                                            <a class="dropdown-item" href="#" 
+                                                               th:onclick="'updateLeadStatus(' + ${lead.id} + ', \'QUALIFIED\')'">
+                                                                <i class="bi bi-check-circle"></i> Mark as Qualified
+                                                            </a>
+                                                        </li>
+                                                        <li th:if="${!lead.closed}">
+                                                            <a class="dropdown-item text-danger" href="#" 
+                                                               th:onclick="'updateLeadStatus(' + ${lead.id} + ', \'CLOSED_LOST\')'">
+                                                                <i class="bi bi-x-circle"></i> Mark as Lost
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div th:unless="${leads and !leads.empty}" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 4rem;"></i>
+                            <h4 class="mt-3">No leads found</h4>
+                            <p th:if="${searchTerm or selectedStatus}">
+                                Try adjusting your search criteria or filters.
+                            </p>
+                            <p th:unless="${searchTerm or selectedStatus}">
+                                Get started by creating your first lead.
+                            </p>
+                            <div class="mt-3">
+                                <a href="/sales/leads/create" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle"></i> Create New Lead
+                                </a>
+                                <a th:if="${searchTerm or selectedStatus}" href="/sales/leads" class="btn btn-outline-secondary ms-2">
+                                    <i class="bi bi-arrow-left"></i> View All Leads
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Modal -->
+        <div class="modal fade" id="bulkActionsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Bulk Actions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Select an action to apply to <span id="selectedCount">0</span> selected leads:</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-info" onclick="bulkUpdateStatus('CONTACTED')">
+                                <i class="bi bi-telephone"></i> Mark as Contacted
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="bulkUpdateStatus('QUALIFIED')">
+                                <i class="bi bi-check-circle"></i> Mark as Qualified
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="bulkUpdateStatus('CLOSED_LOST')">
+                                <i class="bi bi-x-circle"></i> Mark as Lost
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Select all checkbox functionality
+            document.getElementById('selectAll').addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.lead-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateBulkActionsButton();
+            });
+
+            // Individual checkbox change
+            document.querySelectorAll('.lead-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateBulkActionsButton);
+            });
+
+            function updateBulkActionsButton() {
+                const selectedCheckboxes = document.querySelectorAll('.lead-checkbox:checked');
+                const bulkButton = document.getElementById('bulkActionsButton');
+                
+                if (selectedCheckboxes.length > 0) {
+                    if (!bulkButton) {
+                        const button = document.createElement('button');
+                        button.id = 'bulkActionsButton';
+                        button.className = 'btn btn-outline-primary btn-sm ms-2';
+                        button.innerHTML = '<i class="bi bi-gear"></i> Bulk Actions';
+                        button.onclick = showBulkActionsModal;
+                        document.querySelector('.card-header .d-flex').appendChild(button);
+                    }
+                } else if (bulkButton) {
+                    bulkButton.remove();
+                }
+            }
+
+            function showBulkActionsModal() {
+                const selectedCount = document.querySelectorAll('.lead-checkbox:checked').length;
+                document.getElementById('selectedCount').textContent = selectedCount;
+                new bootstrap.Modal(document.getElementById('bulkActionsModal')).show();
+            }
+
+            // Update lead status function
+            function updateLeadStatus(leadId, newStatus) {
+                if (!confirm(`Are you sure you want to update this lead status to ${newStatus}?`)) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('status', newStatus);
+                
+                fetch(`/sales/leads/${leadId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error updating lead status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating lead status:', error);
+                    alert('Error updating lead status');
+                });
+            }
+
+            // Bulk update status
+            function bulkUpdateStatus(newStatus) {
+                const selectedLeads = Array.from(document.querySelectorAll('.lead-checkbox:checked'))
+                    .map(checkbox => checkbox.value);
+                
+                if (selectedLeads.length === 0) {
+                    alert('No leads selected');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to update ${selectedLeads.length} leads to ${newStatus}?`)) {
+                    return;
+                }
+
+                // Update each lead individually
+                let completed = 0;
+                selectedLeads.forEach(leadId => {
+                    const formData = new FormData();
+                    formData.append('status', newStatus);
+                    
+                    fetch(`/sales/leads/${leadId}/status`, {
+                        method: 'POST',
+                        headers: {
+                            [document.querySelector('meta[name="_csrf_header"]').content]: 
+                                document.querySelector('meta[name="_csrf"]').content
+                        },
+                        body: formData
+                    })
+                    .then(response => {
+                        completed++;
+                        if (completed === selectedLeads.length) {
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating lead:', error);
+                        completed++;
+                        if (completed === selectedLeads.length) {
+                            location.reload();
+                        }
+                    });
+                });
+
+                bootstrap.Modal.getInstance(document.getElementById('bulkActionsModal')).hide();
+            }
+
+            // Export functions
+            function exportLeads(format) {
+                const params = new URLSearchParams(window.location.search);
+                params.set('export', format);
+                window.open(`/sales/leads/export?${params.toString()}`, '_blank');
+            }
+
+            // Auto-refresh every 2 minutes
+            setInterval(function() {
+                // Only refresh if no modals are open
+                if (!document.querySelector('.modal.show')) {
+                    location.reload();
+                }
+            }, 120000);
+        </script>
+    </th:block>
+</body>
+</html>

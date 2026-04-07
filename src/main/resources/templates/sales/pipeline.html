@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Sales Pipeline - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-funnel"></i> Sales Pipeline
+                        </h1>
+                        <p class="text-muted mb-0">Visual overview of your sales pipeline and lead progression</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary" onclick="refreshPipeline()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Overview Cards -->
+        <div class="row mb-4">
+            <div class="col-md-2 mb-3" th:each="status : ${leadStatuses}">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <span class="badge status-badge" 
+                                  th:classappend="${status.name() == 'NEW' ? 'bg-primary' : 
+                                                   status.name() == 'CONTACTED' ? 'bg-info' :
+                                                   status.name() == 'QUALIFIED' ? 'bg-warning' :
+                                                   status.name() == 'PROPOSAL' ? 'bg-secondary' :
+                                                   status.name() == 'NEGOTIATION' ? 'bg-dark' :
+                                                   status.name() == 'CLOSED_WON' ? 'bg-success' : 'bg-danger'}"
+                                  th:text="${status.name()}">Status</span>
+                        </h5>
+                        <div class="h2 mb-0" th:text="${pipelineData.get(status)?.size() ?: 0}">0</div>
+                        <small class="text-muted">leads</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Kanban Board -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-kanban"></i> Pipeline Board
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="pipelineBoard">
+                            <div class="col-md-2 mb-3" th:each="status : ${leadStatuses}">
+                                <div class="pipeline-column" th:data-status="${status.name()}">
+                                    <h6 class="text-center mb-3">
+                                        <span class="badge status-badge" 
+                                              th:classappend="${status.name() == 'NEW' ? 'bg-primary' : 
+                                                               status.name() == 'CONTACTED' ? 'bg-info' :
+                                                               status.name() == 'QUALIFIED' ? 'bg-warning' :
+                                                               status.name() == 'PROPOSAL' ? 'bg-secondary' :
+                                                               status.name() == 'NEGOTIATION' ? 'bg-dark' :
+                                                               status.name() == 'CLOSED_WON' ? 'bg-success' : 'bg-danger'}"
+                                              th:text="${status.name()}">Status</span>
+                                        <br>
+                                        <small class="text-muted" th:text="${pipelineData.get(status)?.size() ?: 0} + ' leads'">0 leads</small>
+                                    </h6>
+                                    
+                                    <div class="lead-cards" th:each="lead : ${pipelineData.get(status)}">
+                                        <div class="card lead-card mb-2" th:data-lead-id="${lead.id}">
+                                            <div class="card-body p-2">
+                                                <h6 class="card-title mb-1" th:text="${lead.title}">Lead Title</h6>
+                                                <p class="card-text small text-muted mb-1" th:text="${lead.customer?.name}">Customer</p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-success" th:if="${lead.estimatedValue}">
+                                                        $<span th:text="${#numbers.formatDecimal(lead.estimatedValue, 0, 'COMMA', 0, 'POINT')}">0</span>
+                                                    </small>
+                                                    <small class="text-muted" th:unless="${lead.estimatedValue}">No value</small>
+                                                    <a th:href="@{/sales/leads/{id}(id=${lead.id})}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div th:unless="${pipelineData.get(status)}" class="text-center text-muted py-3">
+                                        <i class="bi bi-inbox"></i>
+                                        <br>
+                                        <small>No leads</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Refresh pipeline data
+            function refreshPipeline() {
+                fetch('/sales/api/pipeline', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updatePipelineCards(data);
+                })
+                .catch(error => {
+                    console.error('Error refreshing pipeline:', error);
+                });
+            }
+
+            function updatePipelineCards(data) {
+                Object.keys(data).forEach(status => {
+                    const count = data[status];
+                    const card = document.querySelector(`[data-status="${status}"]`);
+                    if (card) {
+                        const countElement = card.querySelector('small');
+                        if (countElement) {
+                            countElement.textContent = count + ' leads';
+                        }
+                    }
+                });
+            }
+
+            // Auto-refresh every 2 minutes
+            setInterval(refreshPipeline, 120000);
+        </script>
+    </th:block>
+</body>
+</html>

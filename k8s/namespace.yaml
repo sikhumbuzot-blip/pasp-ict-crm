@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sales-crm
+  labels:
+    name: sales-crm
+    app: sales-crm-application

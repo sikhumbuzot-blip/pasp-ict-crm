@@ -1,0 +1,63 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  test:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Validate Maven project
+      run: mvn validate
+
+    - name: Compile application
+      run: mvn compile
+
+    - name: Run tests
+      run: mvn test
+      env:
+        ENCRYPTION_KEY: test_encryption_key_32_characters
+
+    - name: Build application
+      run: mvn package -DskipTests
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ github.run_number }}
+        path: |
+          target/surefire-reports/
+          target/site/jacoco/
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: sales-crm-jar-${{ github.run_number }}
+        path: target/*.jar
+        retention-days: 30

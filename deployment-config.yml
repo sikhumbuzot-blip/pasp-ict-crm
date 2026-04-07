@@ -1,0 +1,193 @@
+# Sales CRM Application Deployment Configuration
+# This file contains deployment settings for different environments
+
+application:
+  name: sales-crm
+  version: 0.0.1-SNAPSHOT
+  description: Sales CRM Application - Customer Relationship Management System
+  
+repository:
+  url: https://github.com/sikhumbuzot-blip/pasp-ict-crm.git
+  branch: main
+  
+environments:
+  development:
+    profile: dev
+    database:
+      type: h2
+      url: jdbc:h2:mem:crmdb
+      username: sa
+      password: password
+    server:
+      port: 8080
+    features:
+      debug: true
+      h2_console: true
+      hot_reload: true
+      
+  testing:
+    profile: test
+    database:
+      type: h2
+      url: jdbc:h2:mem:testdb
+      username: sa
+      password: password
+    server:
+      port: 8081
+    features:
+      debug: false
+      h2_console: false
+      test_data: true
+      
+  staging:
+    profile: prod
+    database:
+      type: postgresql
+      host: staging-db.example.com
+      port: 5432
+      name: crmdb_staging
+      username: crmuser
+      # password: set via environment variable DB_PASSWORD
+    server:
+      port: 8080
+    features:
+      debug: false
+      ssl: true
+      monitoring: true
+      
+  production:
+    profile: prod
+    database:
+      type: postgresql
+      host: prod-db.example.com
+      port: 5432
+      name: crmdb
+      username: crmuser
+      # password: set via environment variable DB_PASSWORD
+    server:
+      port: 8080
+    features:
+      debug: false
+      ssl: true
+      monitoring: true
+      backup: true
+      
+deployment:
+  methods:
+    local:
+      description: Local development deployment with H2 database
+      command: ./scripts/deploy.sh local --profile dev
+      requirements:
+        - java-17
+        - maven
+      
+    docker:
+      description: Containerized deployment with PostgreSQL
+      command: ./scripts/deploy.sh docker --profile prod
+      requirements:
+        - docker
+        - docker-compose
+      ports:
+        - "8080:8080"  # Application
+        - "8081:80"    # PgAdmin
+        - "5432:5432"  # PostgreSQL
+        
+    kubernetes:
+      description: Kubernetes deployment for production
+      command: ./scripts/deploy.sh kubernetes --profile prod
+      requirements:
+        - kubectl
+        - kubernetes-cluster
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+          
+security:
+  authentication:
+    default_admin:
+      username: admin
+      # password: set via environment variable ADMIN_PASSWORD
+      # default: admin123 (change in production!)
+      
+  encryption:
+    # key: set via environment variable ENCRYPTION_KEY
+    # must be 32 characters long
+    algorithm: AES
+    
+  session:
+    timeout: 30 # minutes
+    
+monitoring:
+  health_check:
+    endpoint: /actuator/health
+    interval: 30s
+    timeout: 10s
+    
+  metrics:
+    endpoint: /actuator/metrics
+    enabled: true
+    
+  logging:
+    level: INFO
+    file: logs/sales-crm.log
+    
+backup:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: 30  # days
+  location: backups/
+  
+ci_cd:
+  github_actions:
+    triggers:
+      - push: [main, develop]
+      - pull_request: [main]
+    jobs:
+      - test
+      - build
+      - security-scan
+      - docker-build
+      - deploy
+      
+  docker_registry:
+    # Configure in GitHub secrets:
+    # DOCKER_USERNAME
+    # DOCKER_PASSWORD
+    
+required_secrets:
+  github:
+    - DOCKER_USERNAME
+    - DOCKER_PASSWORD
+    - DB_PASSWORD
+    - ENCRYPTION_KEY
+    - ADMIN_PASSWORD
+    
+  environment_variables:
+    production:
+      - DB_HOST
+      - DB_USERNAME
+      - DB_PASSWORD
+      - DB_NAME
+      - ENCRYPTION_KEY
+      - ADMIN_PASSWORD
+      - MAIL_HOST (optional)
+      - MAIL_PORT (optional)
+      
+documentation:
+  deployment_guides:
+    - README.md
+    - DEPLOYMENT_README.md
+    - docs/DEPLOYMENT_GUIDE.md
+    - docs/KUBERNETES_DEPLOYMENT_GUIDE.md
+    - docs/ENVIRONMENT_CONFIGURATION.md
+    
+  api_documentation:
+    - docs/API_DOCUMENTATION.md
+    
+  user_guides:
+    - docs/USER_MANUAL.md
+    - docs/FAQ.md
+    - docs/TROUBLESHOOTING_GUIDE.md

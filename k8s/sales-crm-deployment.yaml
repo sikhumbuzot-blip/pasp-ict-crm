@@ -1,0 +1,154 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sales-crm-app
+  namespace: sales-crm
+  labels:
+    app: sales-crm-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sales-crm-app
+  template:
+    metadata:
+      labels:
+        app: sales-crm-app
+    spec:
+      containers:
+      - name: sales-crm
+        image: sales-crm:latest  # Replace with your actual image
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: SPRING_PROFILES_ACTIVE
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: DB_NAME
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sales-crm-secrets
+              key: DB_PASSWORD
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: sales-crm-secrets
+              key: ENCRYPTION_KEY
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sales-crm-secrets
+              key: ADMIN_PASSWORD
+        - name: BACKUP_DIRECTORY
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: BACKUP_DIRECTORY
+        - name: BACKUP_RETENTION_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: BACKUP_RETENTION_DAYS
+        - name: BACKUP_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: BACKUP_ENABLED
+        - name: NOTIFICATION_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: NOTIFICATION_ENABLED
+        - name: NOTIFICATION_SYSTEM_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: NOTIFICATION_SYSTEM_NAME
+        - name: NOTIFICATION_ADMIN_EMAILS
+          valueFrom:
+            secretKeyRef:
+              name: sales-crm-secrets
+              key: NOTIFICATION_ADMIN_EMAILS
+        - name: MAIL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: MAIL_HOST
+        - name: MAIL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: sales-crm-config
+              key: MAIL_PORT
+        - name: MAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sales-crm-secrets
+              key: MAIL_PASSWORD
+        volumeMounts:
+        - name: app-logs
+          mountPath: /app/logs
+        - name: app-backups
+          mountPath: /app/backups
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: app-logs
+        persistentVolumeClaim:
+          claimName: app-logs-pvc
+      - name: app-backups
+        persistentVolumeClaim:
+          claimName: app-backups-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sales-crm-service
+  namespace: sales-crm
+spec:
+  selector:
+    app: sales-crm-app
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP

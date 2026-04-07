@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: sales-crm
+data:
+  01-init-database.sql: |
+    -- Sales CRM Database Initialization Script
+    -- This script creates the necessary database schema for the Sales CRM application
+    
+    -- Create database if it doesn't exist (handled by POSTGRES_DB environment variable)
+    -- CREATE DATABASE IF NOT EXISTS crmdb;
+    
+    -- Use the database
+    \c crmdb;
+    
+    -- Create extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+    
+    -- Grant privileges to the application user
+    GRANT ALL PRIVILEGES ON DATABASE crmdb TO crmuser;
+    GRANT ALL PRIVILEGES ON SCHEMA public TO crmuser;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO crmuser;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO crmuser;
+    
+    -- Set default privileges for future objects
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO crmuser;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO crmuser;
+    
+    -- Create indexes for performance (will be created by JPA, but can be pre-created)
+    -- These will be created automatically by Hibernate/JPA based on entity annotations
+    
+    -- Enable row level security (optional, for enhanced security)
+    -- ALTER DATABASE crmdb SET row_security = on;
+    
+    -- Configure PostgreSQL settings for better performance
+    -- These should be set in postgresql.conf for production
+    -- ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+    -- ALTER SYSTEM SET pg_stat_statements.track = 'all';
+    
+    -- Create a read-only user for reporting (optional)
+    -- CREATE USER crm_readonly WITH PASSWORD 'readonly_password';
+    -- GRANT CONNECT ON DATABASE crmdb TO crm_readonly;
+    -- GRANT USAGE ON SCHEMA public TO crm_readonly;
+    -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO crm_readonly;
+    -- ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO crm_readonly;

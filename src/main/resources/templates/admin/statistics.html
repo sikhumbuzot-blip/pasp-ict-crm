@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>System Statistics - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <meta http-equiv="refresh" content="60">
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-bar-chart"></i> System Statistics Dashboard
+                        </h1>
+                        <p class="text-muted mb-0">Real-time system metrics and performance analytics</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary" onclick="refreshDashboard()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <a href="/admin/reports" class="btn btn-outline-success">
+                            <i class="bi bi-file-text"></i> Generate Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0" th:text="${systemStats.totalUsers ?: 0}">0</h4>
+                                <p class="mb-0">Total Users</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-people" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>
+                                <i class="bi bi-arrow-up"></i> 
+                                <span th:text="${systemStats.userGrowth ?: '0'}">0</span>% from last month
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0" th:text="${systemStats.totalCustomers ?: 0}">0</h4>
+                                <p class="mb-0">Total Customers</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-person-check" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>
+                                <i class="bi bi-arrow-up"></i> 
+                                <span th:text="${systemStats.customerGrowth ?: '0'}">0</span>% from last month
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0" th:text="${systemStats.totalLeads ?: 0}">0</h4>
+                                <p class="mb-0">Total Leads</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-funnel" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>
+                                <i class="bi bi-arrow-up"></i> 
+                                <span th:text="${systemStats.leadGrowth ?: '0'}">0</span>% from last month
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-0">$<span th:text="${systemStats.totalRevenue ?: '0.00'}">0.00</span></h4>
+                                <p class="mb-0">Total Revenue</p>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-currency-dollar" style="font-size: 2rem;"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small>
+                                <i class="bi bi-arrow-up"></i> 
+                                <span th:text="${systemStats.revenueGrowth ?: '0'}">0</span>% from last month
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-speedometer2"></i> System Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="performanceChart" width="400" height="200"></canvas>
+                        
+                        <div class="row mt-3 text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-primary mb-0" th:text="${performanceMetrics.avgResponseTime ?: '0'} + 'ms'">0ms</h6>
+                                    <small class="text-muted">Avg Response</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-success mb-0" th:text="${performanceMetrics.throughput ?: '0'} + '/min'">0/min</h6>
+                                    <small class="text-muted">Throughput</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="text-info mb-0" th:text="${performanceMetrics.activeSessions ?: 0}">0</h6>
+                                <small class="text-muted">Active Sessions</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i> Sales Performance by User
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="salesPerformanceChart" width="400" height="200"></canvas>
+                        
+                        <div class="mt-3" th:if="${salesPerformance}">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Sales Rep</th>
+                                            <th>Sales</th>
+                                            <th>Revenue</th>
+                                            <th>Conversion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="rep : ${salesPerformance.topPerformers ?: {}}">
+                                            <td th:text="${rep.name}">Name</td>
+                                            <td th:text="${rep.totalSales}">0</td>
+                                            <td>$<span th:text="${rep.totalRevenue}">0.00</span></td>
+                                            <td th:text="${rep.conversionRate}">0</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Activity and System Health -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-activity"></i> User Activity Trends
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="userActivityChart" width="400" height="200"></canvas>
+                        
+                        <div class="row mt-3 text-center">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-success mb-0" th:text="${systemStats.activeUsers ?: 0}">0</h6>
+                                    <small class="text-muted">Active Today</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <h6 class="text-info mb-0" th:text="${systemStats.weeklyActiveUsers ?: 0}">0</h6>
+                                    <small class="text-muted">Weekly Active</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h6 class="text-warning mb-0" th:text="${systemStats.monthlyActiveUsers ?: 0}">0</h6>
+                                <small class="text-muted">Monthly Active</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-heart-pulse"></i> System Health
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center mb-3">
+                                    <div class="progress-circle" data-percentage="65">
+                                        <canvas width="80" height="80"></canvas>
+                                        <div class="progress-text">
+                                            <span>65%</span>
+                                            <small>Memory</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center mb-3">
+                                    <div class="progress-circle" data-percentage="45">
+                                        <canvas width="80" height="80"></canvas>
+                                        <div class="progress-text">
+                                            <span>45%</span>
+                                            <small>CPU</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="progress-circle" data-percentage="30">
+                                        <canvas width="80" height="80"></canvas>
+                                        <div class="progress-text">
+                                            <span>30%</span>
+                                            <small>Disk</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="progress-circle" data-percentage="99">
+                                        <canvas width="80" height="80"></canvas>
+                                        <div class="progress-text">
+                                            <span>99%</span>
+                                            <small>Uptime</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer and Lead Analytics -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-people"></i> Customer Analytics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="customerAnalyticsChart" width="400" height="200"></canvas>
+                        
+                        <div class="mt-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="border-end">
+                                        <h6 class="text-primary mb-0" th:text="${systemStats.newCustomersThisMonth ?: 0}">0</h6>
+                                        <small class="text-muted">New This Month</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border-end">
+                                        <h6 class="text-success mb-0" th:text="${systemStats.activeCustomers ?: 0}">0</h6>
+                                        <small class="text-muted">Active</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <h6 class="text-warning mb-0" th:text="${systemStats.inactiveCustomers ?: 0}">0</h6>
+                                    <small class="text-muted">Inactive</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-funnel"></i> Lead Conversion Funnel
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="leadFunnelChart" width="400" height="200"></canvas>
+                        
+                        <div class="mt-3">
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-info" style="width: 100%">New Leads (100)</div>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-primary" style="width: 75%">Contacted (75)</div>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-warning" style="width: 50%">Qualified (50)</div>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 25%">Closed Won (25)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Activity Feed -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-broadcast"></i> Real-time Activity Feed
+                            </h5>
+                            <div class="text-muted">
+                                <small>
+                                    <i class="bi bi-circle-fill text-success" style="font-size: 0.5rem;"></i>
+                                    Live updates
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="activity-feed" style="max-height: 300px; overflow-y: auto;">
+                            <div class="activity-item d-flex align-items-center mb-3">
+                                <div class="activity-icon bg-success text-white rounded-circle me-3">
+                                    <i class="bi bi-person-plus"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">New customer registered</div>
+                                    <small class="text-muted">John Doe joined the system • 2 minutes ago</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item d-flex align-items-center mb-3">
+                                <div class="activity-icon bg-primary text-white rounded-circle me-3">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">Sale completed</div>
+                                    <small class="text-muted">$2,500 sale by Sarah Johnson • 5 minutes ago</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item d-flex align-items-center mb-3">
+                                <div class="activity-icon bg-info text-white rounded-circle me-3">
+                                    <i class="bi bi-funnel"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">Lead converted</div>
+                                    <small class="text-muted">Lead #123 converted to customer • 8 minutes ago</small>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item d-flex align-items-center mb-3">
+                                <div class="activity-icon bg-warning text-white rounded-circle me-3">
+                                    <i class="bi bi-person-check"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">User login</div>
+                                    <small class="text-muted">Mike Wilson logged in • 12 minutes ago</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <style>
+            .progress-circle {
+                position: relative;
+                display: inline-block;
+            }
+            
+            .progress-text {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+            }
+            
+            .progress-text span {
+                display: block;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            
+            .progress-text small {
+                font-size: 10px;
+                color: #6c757d;
+            }
+            
+            .activity-icon {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        </style>
+        
+        <script>
+            function refreshDashboard() {
+                location.reload();
+            }
+
+            // Initialize all charts
+            document.addEventListener('DOMContentLoaded', function() {
+                initializePerformanceChart();
+                initializeSalesPerformanceChart();
+                initializeUserActivityChart();
+                initializeCustomerAnalyticsChart();
+                initializeLeadFunnelChart();
+                initializeProgressCircles();
+                startRealTimeUpdates();
+            });
+
+            function initializePerformanceChart() {
+                const ctx = document.getElementById('performanceChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                            datasets: [{
+                                label: 'Response Time (ms)',
+                                data: [120, 150, 180, 200, 170, 140],
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function initializeSalesPerformanceChart() {
+                const ctx = document.getElementById('salesPerformanceChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Sarah J.', 'Mike W.', 'Lisa K.', 'Tom R.', 'Anna M.'],
+                            datasets: [{
+                                label: 'Sales Revenue ($)',
+                                data: [25000, 19000, 15000, 12000, 8000],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(255, 205, 86, 0.2)',
+                                    'rgba(75, 192, 192, 0.2)',
+                                    'rgba(153, 102, 255, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 205, 86, 1)',
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(153, 102, 255, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function initializeUserActivityChart() {
+                const ctx = document.getElementById('userActivityChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                            datasets: [{
+                                label: 'Active Users',
+                                data: [12, 19, 15, 25, 22, 18, 8],
+                                borderColor: 'rgb(54, 162, 235)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function initializeCustomerAnalyticsChart() {
+                const ctx = document.getElementById('customerAnalyticsChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Active', 'Inactive', 'New'],
+                            datasets: [{
+                                data: [65, 25, 10],
+                                backgroundColor: [
+                                    'rgba(75, 192, 192, 0.2)',
+                                    'rgba(255, 205, 86, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(255, 205, 86, 1)',
+                                    'rgba(54, 162, 235, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                }
+            }
+
+            function initializeLeadFunnelChart() {
+                const ctx = document.getElementById('leadFunnelChart');
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['New', 'Contacted', 'Qualified', 'Proposal', 'Closed Won'],
+                            datasets: [{
+                                label: 'Leads',
+                                data: [100, 75, 50, 35, 25],
+                                backgroundColor: [
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(75, 192, 192, 0.2)',
+                                    'rgba(255, 205, 86, 0.2)',
+                                    'rgba(255, 159, 64, 0.2)',
+                                    'rgba(75, 192, 192, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(255, 205, 86, 1)',
+                                    'rgba(255, 159, 64, 1)',
+                                    'rgba(75, 192, 192, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function initializeProgressCircles() {
+                document.querySelectorAll('.progress-circle').forEach(circle => {
+                    const canvas = circle.querySelector('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const percentage = parseInt(circle.dataset.percentage);
+                    
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+                    const radius = 30;
+                    
+                    // Background circle
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    ctx.strokeStyle = '#e9ecef';
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                    
+                    // Progress arc
+                    const startAngle = -Math.PI / 2;
+                    const endAngle = startAngle + (2 * Math.PI * percentage / 100);
+                    
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                    ctx.strokeStyle = percentage > 80 ? '#dc3545' : percentage > 60 ? '#ffc107' : '#28a745';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                });
+            }
+
+            function startRealTimeUpdates() {
+                // Simulate real-time activity updates
+                setInterval(() => {
+                    const activities = [
+                        { icon: 'bi-person-plus', bg: 'bg-success', title: 'New customer registered', desc: 'Customer joined the system' },
+                        { icon: 'bi-currency-dollar', bg: 'bg-primary', title: 'Sale completed', desc: 'Sale processed successfully' },
+                        { icon: 'bi-funnel', bg: 'bg-info', title: 'Lead converted', desc: 'Lead converted to customer' },
+                        { icon: 'bi-person-check', bg: 'bg-warning', title: 'User login', desc: 'User logged into system' }
+                    ];
+                    
+                    const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+                    const timeAgo = Math.floor(Math.random() * 30) + 1;
+                    
+                    const activityHtml = `
+                        <div class="activity-item d-flex align-items-center mb-3">
+                            <div class="activity-icon ${randomActivity.bg} text-white rounded-circle me-3">
+                                <i class="bi ${randomActivity.icon}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">${randomActivity.title}</div>
+                                <small class="text-muted">${randomActivity.desc} • ${timeAgo} minutes ago</small>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const feed = document.getElementById('activity-feed');
+                    feed.insertAdjacentHTML('afterbegin', activityHtml);
+                    
+                    // Keep only last 10 activities
+                    const activities_list = feed.querySelectorAll('.activity-item');
+                    if (activities_list.length > 10) {
+                        activities_list[activities_list.length - 1].remove();
+                    }
+                }, 30000); // Every 30 seconds
+            }
+
+            // Auto-refresh statistics every 5 minutes
+            setInterval(() => {
+                fetch('/admin/api/statistics')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update statistics without full page reload
+                        console.log('Statistics updated:', data);
+                    })
+                    .catch(error => {
+                        console.log('Statistics update failed:', error);
+                    });
+            }, 300000);
+        </script>
+    </th:block>
+</body>
+</html>

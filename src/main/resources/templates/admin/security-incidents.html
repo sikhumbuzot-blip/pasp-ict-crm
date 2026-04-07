@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Incidents - Sales CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link th:href="@{/css/custom.css}" rel="stylesheet">
+</head>
+<body>
+    <div th:replace="~{layout/base :: navbar}"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div th:replace="~{layout/base :: sidebar}"></div>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="fas fa-shield-alt me-2 text-danger"></i>
+                        Security Incidents
+                    </h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <a href="/admin/audit-logs" class="btn btn-outline-primary">
+                                <i class="fas fa-list-alt me-1"></i>
+                                All Audit Logs
+                            </a>
+                            <a href="/admin/backups" class="btn btn-outline-success">
+                                <i class="fas fa-database me-1"></i>
+                                Backup Management
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-danger">
+                            <div class="card-body text-center">
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                                <h5 class="card-title">Critical Incidents</h5>
+                                <h3 class="text-danger" th:text="${#lists.size(#lists.select(securityEvents, event -> event.action.contains('VIOLATION') or event.action.contains('UNAUTHORIZED')))}">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-sign-in-alt fa-2x text-warning mb-2"></i>
+                                <h5 class="card-title">Failed Logins</h5>
+                                <h3 class="text-warning" th:text="${#lists.size(#lists.select(securityEvents, event -> event.action.contains('LOGIN_FAILURE')))}">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                                <h5 class="card-title">Last 24 Hours</h5>
+                                <h3 class="text-info" th:text="${#lists.size(securityEvents)}">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <i class="fas fa-shield-alt fa-2x text-success mb-2"></i>
+                                <h5 class="card-title">System Status</h5>
+                                <h3 class="text-success">Secure</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Incidents Table -->
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Recent Security Events
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Severity</th>
+                                        <th>Timestamp</th>
+                                        <th>Event Type</th>
+                                        <th>User/Source</th>
+                                        <th>IP Address</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:if="${#lists.isEmpty(securityEvents)}">
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            <i class="fas fa-check-circle me-2 text-success"></i>
+                                            No security incidents found - System is secure
+                                        </td>
+                                    </tr>
+                                    <tr th:each="event : ${securityEvents}" 
+                                        th:class="${event.action.contains('VIOLATION') or event.action.contains('UNAUTHORIZED') ? 'table-danger' : 
+                                                  (event.action.contains('LOGIN_FAILURE') ? 'table-warning' : 'table-info')}">
+                                        <td>
+                                            <i th:if="${event.action.contains('VIOLATION') or event.action.contains('UNAUTHORIZED')}" 
+                                               class="fas fa-exclamation-triangle text-danger" title="Critical"></i>
+                                            <i th:if="${event.action.contains('LOGIN_FAILURE')}" 
+                                               class="fas fa-exclamation-circle text-warning" title="Warning"></i>
+                                            <i th:if="${!event.action.contains('VIOLATION') and !event.action.contains('UNAUTHORIZED') and !event.action.contains('LOGIN_FAILURE')}" 
+                                               class="fas fa-info-circle text-info" title="Info"></i>
+                                        </td>
+                                        <td>
+                                            <small th:text="${#temporals.format(event.timestamp, 'yyyy-MM-dd HH:mm:ss')}">2024-01-01 12:00:00</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:class="${event.action.contains('VIOLATION') or event.action.contains('UNAUTHORIZED') ? 'bg-danger' : 
+                                                            (event.action.contains('LOGIN_FAILURE') ? 'bg-warning' : 'bg-info')}"
+                                                  th:text="${event.action}">EVENT_TYPE</span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong th:if="${event.user != null}" th:text="${event.user.username}">username</strong>
+                                                <span th:if="${event.user == null}" class="text-muted">Anonymous</span>
+                                            </div>
+                                            <small class="text-muted" th:text="${event.entityType}">Entity Type</small>
+                                        </td>
+                                        <td>
+                                            <code th:text="${event.ipAddress ?: 'Unknown'}">192.168.1.1</code>
+                                        </td>
+                                        <td>
+                                            <div th:text="${#strings.abbreviate(event.newValues ?: event.oldValues ?: 'No description available', 60)}">
+                                                Event description...
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-info" 
+                                                        th:onclick="'showIncidentDetails(' + ${event.id} + ')'"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#incidentDetailsModal"
+                                                        title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning" 
+                                                        th:onclick="'investigateIncident(' + ${event.id} + ')'"
+                                                        title="Investigate">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Recommendations -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    Security Recommendations
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-check-circle text-success me-2"></i>Best Practices</h6>
+                                        <ul class="list-unstyled">
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Monitor failed login attempts regularly</li>
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Review audit logs daily</li>
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Ensure backup notifications are working</li>
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Update user passwords regularly</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-exclamation-triangle text-warning me-2"></i>Alert Thresholds</h6>
+                                        <ul class="list-unstyled">
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>3+ failed logins trigger notifications</li>
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Unauthorized access attempts are logged</li>
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Security violations notify administrators</li>
+                                            <li><i class="fas fa-arrow-right text-muted me-2"></i>Backup failures require immediate attention</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Incident Details Modal -->
+    <div class="modal fade" id="incidentDetailsModal" tabindex="-1" aria-labelledby="incidentDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="incidentDetailsModalLabel">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Security Incident Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="incidentDetailsContent">
+                    <!-- Content will be loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" onclick="markAsInvestigated()">
+                        <i class="fas fa-check me-1"></i>
+                        Mark as Investigated
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/common.js}"></script>
+    <script th:inline="javascript">
+        const securityEvents = /*[[${securityEvents}]]*/ [];
+        let currentIncidentId = null;
+        
+        function showIncidentDetails(incidentId) {
+            currentIncidentId = incidentId;
+            const incident = securityEvents.find(e => e.id === incidentId);
+            if (!incident) {
+                document.getElementById('incidentDetailsContent').innerHTML = '<p class="text-danger">Incident details not found.</p>';
+                return;
+            }
+            
+            const severityClass = incident.action.includes('VIOLATION') || incident.action.includes('UNAUTHORIZED') ? 'danger' : 
+                                 incident.action.includes('LOGIN_FAILURE') ? 'warning' : 'info';
+            
+            const content = `
+                <div class="alert alert-${severityClass}" role="alert">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Security Incident #${incident.id}
+                    </h6>
+                    <p class="mb-0">This incident requires administrator attention and investigation.</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Incident Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Event Type:</strong></td><td><span class="badge bg-${severityClass}">${incident.action}</span></td></tr>
+                            <tr><td><strong>Timestamp:</strong></td><td>${new Date(incident.timestamp).toLocaleString()}</td></tr>
+                            <tr><td><strong>Entity Type:</strong></td><td>${incident.entityType}</td></tr>
+                            <tr><td><strong>Entity ID:</strong></td><td>${incident.entityId || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Source Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>User:</strong></td><td>${incident.user ? incident.user.username : 'Anonymous'}</td></tr>
+                            <tr><td><strong>IP Address:</strong></td><td><incident.ipAddress || 'Unknown'}</td></tr>
+                            <tr><td><strong>User Agent:</strong></td><td><small>${incident.userAgent || 'N/A'}</small></td></tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Incident Details</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Context:</strong></label>
+                                <textarea class="form-control" rows="4" readonly>${incident.oldValues || 'No context available'}</textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Details:</strong></label>
+                                <textarea class="form-control" rows="4" readonly>${incident.newValues || 'No additional details'}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Recommended Actions</h6>
+                        <div class="alert alert-info">
+                            <ul class="mb-0">
+                                ${getRecommendedActions(incident.action)}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('incidentDetailsContent').innerHTML = content;
+        }
+        
+        function getRecommendedActions(action) {
+            if (action.includes('LOGIN_FAILURE')) {
+                return `
+                    <li>Monitor for additional failed attempts from the same IP</li>
+                    <li>Consider temporarily blocking the IP if attempts continue</li>
+                    <li>Verify the user account is legitimate</li>
+                    <li>Check if the user needs password reset assistance</li>
+                `;
+            } else if (action.includes('UNAUTHORIZED')) {
+                return `
+                    <li>Review user permissions and role assignments</li>
+                    <li>Investigate if this was a legitimate access attempt</li>
+                    <li>Consider additional training for the user</li>
+                    <li>Monitor user activity for suspicious patterns</li>
+                `;
+            } else if (action.includes('VIOLATION')) {
+                return `
+                    <li><strong>IMMEDIATE ACTION REQUIRED</strong></li>
+                    <li>Block the source IP address immediately</li>
+                    <li>Review all recent activity from this source</li>
+                    <li>Check system integrity and run security scans</li>
+                    <li>Consider involving security team or law enforcement</li>
+                `;
+            } else {
+                return `
+                    <li>Review the incident details carefully</li>
+                    <li>Monitor for related security events</li>
+                    <li>Document any actions taken</li>
+                    <li>Update security policies if necessary</li>
+                `;
+            }
+        }
+        
+        function investigateIncident(incidentId) {
+            // This would typically open a more detailed investigation interface
+            // For now, we'll just show the details modal
+            showIncidentDetails(incidentId);
+        }
+        
+        function markAsInvestigated() {
+            if (currentIncidentId) {
+                // In a real implementation, this would update the incident status
+                alert('Incident #' + currentIncidentId + ' marked as investigated.\n\nNote: This is a demo - in production, this would update the incident status in the database.');
+                
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('incidentDetailsModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

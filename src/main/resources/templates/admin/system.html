@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>System Configuration - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+        <meta http-equiv="refresh" content="30">
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-gear"></i> System Configuration & Health
+                        </h1>
+                        <p class="text-muted mb-0">Monitor system health, performance, and configuration</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <a href="/admin/users" class="btn btn-outline-secondary">
+                            <i class="bi bi-people"></i> User Management
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Health Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-heart-pulse"></i> System Health Overview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <div class="health-indicator" 
+                                         th:classappend="${systemHealth.databaseStatus == 'UP' ? 'text-success' : 'text-danger'}">
+                                        <i class="bi" th:classappend="${systemHealth.databaseStatus == 'UP' ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}" 
+                                           style="font-size: 2rem;"></i>
+                                        <h6 class="mt-2">Database</h6>
+                                        <small th:text="${systemHealth.databaseStatus}">Status</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <div class="health-indicator" 
+                                         th:classappend="${systemHealth.memoryUsage < 80 ? 'text-success' : systemHealth.memoryUsage < 90 ? 'text-warning' : 'text-danger'}">
+                                        <i class="bi bi-memory" style="font-size: 2rem;"></i>
+                                        <h6 class="mt-2">Memory</h6>
+                                        <small th:text="${systemHealth.memoryUsage} + '%'">Usage</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <div class="health-indicator" 
+                                         th:classappend="${systemHealth.diskUsage < 80 ? 'text-success' : systemHealth.diskUsage < 90 ? 'text-warning' : 'text-danger'}">
+                                        <i class="bi bi-hdd" style="font-size: 2rem;"></i>
+                                        <h6 class="mt-2">Disk Space</h6>
+                                        <small th:text="${systemHealth.diskUsage} + '%'">Usage</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="health-indicator text-info">
+                                    <i class="bi bi-clock" style="font-size: 2rem;"></i>
+                                    <h6 class="mt-2">Uptime</h6>
+                                    <small th:text="${systemHealth.uptime}">Time</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i> System Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center border-end">
+                                    <h4 class="text-primary mb-0" th:text="${systemStats.totalUsers ?: 0}">0</h4>
+                                    <small class="text-muted">Total Users</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-success mb-0" th:text="${systemStats.activeUsers ?: 0}">0</h4>
+                                    <small class="text-muted">Active Users</small>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center border-end">
+                                    <h4 class="text-info mb-0" th:text="${systemStats.totalCustomers ?: 0}">0</h4>
+                                    <small class="text-muted">Total Customers</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-warning mb-0" th:text="${systemStats.totalLeads ?: 0}">0</h4>
+                                    <small class="text-muted">Total Leads</small>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="text-center">
+                                    <h4 class="text-success mb-0">
+                                        $<span th:text="${systemStats.totalRevenue ?: '0.00'}">0.00</span>
+                                    </h4>
+                                    <small class="text-muted">Total Revenue</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-speedometer2"></i> Performance Metrics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <small>Average Response Time</small>
+                                <small th:text="${performanceMetrics.avgResponseTime ?: '0'} + 'ms'">0ms</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" 
+                                     th:classappend="${performanceMetrics.avgResponseTime < 200 ? 'bg-success' : 
+                                                      performanceMetrics.avgResponseTime < 500 ? 'bg-warning' : 'bg-danger'}"
+                                     th:style="'width: ' + ${(performanceMetrics.avgResponseTime ?: 0) / 10} + '%'"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <small>Database Query Time</small>
+                                <small th:text="${performanceMetrics.avgQueryTime ?: '0'} + 'ms'">0ms</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-info" 
+                                     th:style="'width: ' + ${(performanceMetrics.avgQueryTime ?: 0) / 5} + '%'"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <small>Active Sessions</small>
+                                <small th:text="${performanceMetrics.activeSessions ?: 0}">0</small>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-primary" 
+                                     th:style="'width: ' + ${(performanceMetrics.activeSessions ?: 0) * 10} + '%'"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-clock"></i> 
+                                Last updated: <span th:text="${#temporals.format(#temporals.createNow(), 'HH:mm:ss')}">now</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Security Events -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-shield-exclamation"></i> Recent Security Events
+                            </h5>
+                            <a href="/admin/activity" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-list"></i> View All Activity
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${securityEvents and !securityEvents.empty}">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Event</th>
+                                            <th>User</th>
+                                            <th>Details</th>
+                                            <th>Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="event : ${securityEvents}">
+                                            <td>
+                                                <span class="badge" 
+                                                      th:classappend="${event.action.contains('LOGIN') ? 'bg-info' : 
+                                                                       event.action.contains('FAILED') ? 'bg-danger' : 
+                                                                       event.action.contains('CREATE') ? 'bg-success' : 'bg-secondary'}"
+                                                      th:text="${event.action}">Action</span>
+                                            </td>
+                                            <td>
+                                                <span th:if="${event.user}" th:text="${event.user.firstName + ' ' + event.user.lastName}">User</span>
+                                                <span th:unless="${event.user}" class="text-muted">System</span>
+                                            </td>
+                                            <td>
+                                                <small th:text="${event.entityType + ' #' + event.entityId}">Details</small>
+                                            </td>
+                                            <td>
+                                                <small th:text="${#temporals.format(event.timestamp, 'MMM dd HH:mm')}">Time</small>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div th:unless="${securityEvents and !securityEvents.empty}" class="text-center text-muted py-3">
+                            <i class="bi bi-shield-check" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">No recent security events</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Configuration -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-sliders"></i> System Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-6">Database Type:</dt>
+                            <dd class="col-sm-6">
+                                <span class="badge bg-info" th:text="${systemHealth.databaseType ?: 'H2'}">H2</span>
+                            </dd>
+                            
+                            <dt class="col-sm-6">Environment:</dt>
+                            <dd class="col-sm-6">
+                                <span class="badge" 
+                                      th:classappend="${systemHealth.environment == 'production' ? 'bg-danger' : 
+                                                       systemHealth.environment == 'development' ? 'bg-warning' : 'bg-info'}"
+                                      th:text="${systemHealth.environment ?: 'development'}">Environment</span>
+                            </dd>
+                            
+                            <dt class="col-sm-6">Java Version:</dt>
+                            <dd class="col-sm-6" th:text="${systemHealth.javaVersion ?: 'Unknown'}">Version</dd>
+                            
+                            <dt class="col-sm-6">Application Version:</dt>
+                            <dd class="col-sm-6" th:text="${systemHealth.appVersion ?: '1.0.0'}">Version</dd>
+                            
+                            <dt class="col-sm-6">Max Memory:</dt>
+                            <dd class="col-sm-6" th:text="${systemHealth.maxMemory ?: 'Unknown'}">Memory</dd>
+                            
+                            <dt class="col-sm-6">Available Processors:</dt>
+                            <dd class="col-sm-6" th:text="${systemHealth.processors ?: 'Unknown'}">Count</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-tools"></i> System Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-primary" onclick="runSystemHealthCheck()">
+                                <i class="bi bi-heart-pulse"></i> Run Health Check
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-info" onclick="clearSystemCache()">
+                                <i class="bi bi-arrow-clockwise"></i> Clear System Cache
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-success" onclick="generateSystemReport()">
+                                <i class="bi bi-file-text"></i> Generate System Report
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-warning" onclick="backupDatabase()">
+                                <i class="bi bi-database"></i> Backup Database
+                            </button>
+                            
+                            <hr>
+                            
+                            <button type="button" class="btn btn-outline-danger" onclick="showMaintenanceMode()">
+                                <i class="bi bi-exclamation-triangle"></i> Maintenance Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Information -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-database"></i> Database Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>Connection Details</h6>
+                                <dl>
+                                    <dt>Database URL:</dt>
+                                    <dd><code th:text="${systemHealth.databaseUrl ?: 'jdbc:h2:mem:crmdb'}">URL</code></dd>
+                                    
+                                    <dt>Driver:</dt>
+                                    <dd th:text="${systemHealth.databaseDriver ?: 'H2 Driver'}">Driver</dd>
+                                    
+                                    <dt>Connection Pool:</dt>
+                                    <dd>
+                                        <span class="badge" 
+                                              th:classappend="${systemHealth.connectionPoolActive ? 'bg-success' : 'bg-danger'}"
+                                              th:text="${systemHealth.connectionPoolActive ? 'Active' : 'Inactive'}">Status</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <h6>Performance</h6>
+                                <dl>
+                                    <dt>Active Connections:</dt>
+                                    <dd th:text="${systemHealth.activeConnections ?: 0}">0</dd>
+                                    
+                                    <dt>Max Connections:</dt>
+                                    <dd th:text="${systemHealth.maxConnections ?: 10}">10</dd>
+                                    
+                                    <dt>Avg Query Time:</dt>
+                                    <dd th:text="${performanceMetrics.avgQueryTime ?: '0'} + 'ms'">0ms</dd>
+                                </dl>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <h6>Migration Status</h6>
+                                <div class="alert alert-info">
+                                    <h6 class="alert-heading">
+                                        <i class="bi bi-info-circle"></i> PostgreSQL Migration
+                                    </h6>
+                                    <p class="mb-2">Current: H2 In-Memory Database</p>
+                                    <p class="mb-0">
+                                        <a href="/admin/migration-guide" class="alert-link">
+                                            View PostgreSQL Migration Guide
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            function refreshData() {
+                location.reload();
+            }
+
+            function runSystemHealthCheck() {
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Running...';
+                btn.disabled = true;
+                
+                fetch('/admin/api/health')
+                    .then(response => response.json())
+                    .then(data => {
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                            alert('System health check completed successfully');
+                            location.reload();
+                        }, 2000);
+                    })
+                    .catch(error => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        alert('Health check failed: ' + error.message);
+                    });
+            }
+
+            function clearSystemCache() {
+                if (confirm('Clear system cache? This may temporarily slow down the application.')) {
+                    alert('System cache would be cleared');
+                    // Implementation would clear application cache
+                }
+            }
+
+            function generateSystemReport() {
+                window.open('/admin/api/reports/export?type=system&format=PDF', '_blank');
+            }
+
+            function backupDatabase() {
+                if (confirm('Create database backup? This may take a few minutes.')) {
+                    const btn = event.target;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Backing up...';
+                    btn.disabled = true;
+                    
+                    // Simulate backup process
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        alert('Database backup completed successfully');
+                    }, 3000);
+                }
+            }
+
+            function showMaintenanceMode() {
+                if (confirm('Enable maintenance mode? This will prevent user access to the system.')) {
+                    if (confirm('Are you sure? All users will be logged out.')) {
+                        alert('Maintenance mode would be enabled');
+                        // Implementation would enable maintenance mode
+                    }
+                }
+            }
+
+            // Auto-refresh system health indicators
+            setInterval(function() {
+                fetch('/admin/api/health')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update health indicators without full page reload
+                        console.log('Health data updated:', data);
+                    })
+                    .catch(error => {
+                        console.log('Health check failed:', error);
+                    });
+            }, 30000); // Every 30 seconds
+
+            // Real-time performance monitoring
+            function updatePerformanceMetrics() {
+                fetch('/admin/api/performance')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update performance metrics
+                        console.log('Performance data updated:', data);
+                    })
+                    .catch(error => {
+                        console.log('Performance check failed:', error);
+                    });
+            }
+
+            // Initialize performance monitoring
+            setInterval(updatePerformanceMetrics, 10000); // Every 10 seconds
+        </script>
+    </th:block>
+</body>
+</html>

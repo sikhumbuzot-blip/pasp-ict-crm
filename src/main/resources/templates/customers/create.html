@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Create Customer - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/customers">Customers</a></li>
+                        <li class="breadcrumb-item active">Create New Customer</li>
+                    </ol>
+                </nav>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-person-plus"></i> Create New Customer
+                        </h1>
+                        <p class="text-muted mb-0">Add a new customer to your CRM system</p>
+                    </div>
+                    <div>
+                        <a href="/customers" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Customers
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> Customer Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/customers/create}" method="post" novalidate>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="name" class="form-label">
+                                            Full Name <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="name" 
+                                               name="name" 
+                                               placeholder="Enter customer's full name"
+                                               required
+                                               maxlength="100">
+                                        <div class="invalid-feedback">
+                                            Please provide a valid customer name.
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">
+                                            Email Address <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="email" 
+                                               class="form-control" 
+                                               id="email" 
+                                               name="email" 
+                                               placeholder="customer@example.com"
+                                               required
+                                               maxlength="150">
+                                        <div class="invalid-feedback">
+                                            Please provide a valid email address.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" 
+                                               class="form-control" 
+                                               id="phone" 
+                                               name="phone" 
+                                               placeholder="+1 (555) 123-4567"
+                                               maxlength="20">
+                                        <div class="form-text">Optional - Include country code if international</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="company" class="form-label">Company</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="company" 
+                                               name="company" 
+                                               placeholder="Company name"
+                                               maxlength="100">
+                                        <div class="form-text">Optional - Customer's company or organization</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <textarea class="form-control" 
+                                          id="address" 
+                                          name="address" 
+                                          rows="3" 
+                                          placeholder="Enter customer's address"
+                                          maxlength="500"></textarea>
+                                <div class="form-text">Optional - Full address including city, state, and postal code</div>
+                            </div>
+                            
+                            <hr class="my-4">
+                            
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Fields marked with <span class="text-danger">*</span> are required
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="/customers" class="btn btn-outline-secondary me-2">
+                                        <i class="bi bi-x"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check"></i> Create Customer
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Tips Card -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-lightbulb"></i> Tips for Creating Customers
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li><strong>Duplicate Prevention:</strong> The system will check for existing customers with the same email address</li>
+                            <li><strong>Data Quality:</strong> Provide as much information as possible for better customer relationship management</li>
+                            <li><strong>Contact Information:</strong> Accurate contact details help with future communications and follow-ups</li>
+                            <li><strong>Company Information:</strong> Adding company details helps with B2B relationship tracking</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Form validation
+            (function() {
+                'use strict';
+                window.addEventListener('load', function() {
+                    var forms = document.getElementsByTagName('form');
+                    var validation = Array.prototype.filter.call(forms, function(form) {
+                        form.addEventListener('submit', function(event) {
+                            if (form.checkValidity() === false) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            form.classList.add('was-validated');
+                        }, false);
+                    });
+                }, false);
+            })();
+
+            // Phone number formatting
+            document.getElementById('phone').addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 10) {
+                    value = value.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+                } else if (value.length >= 6) {
+                    value = value.replace(/(\d{3})(\d{3})/, '($1) $2-');
+                } else if (value.length >= 3) {
+                    value = value.replace(/(\d{3})/, '($1) ');
+                }
+                e.target.value = value;
+            });
+
+            // Email validation
+            document.getElementById('email').addEventListener('blur', function(e) {
+                const email = e.target.value;
+                if (email) {
+                    // Check for duplicate email (simplified client-side check)
+                    fetch(`/customers/api/search?query=${encodeURIComponent(email)}`)
+                        .then(response => response.json())
+                        .then(customers => {
+                            const existingCustomer = customers.find(c => c.email.toLowerCase() === email.toLowerCase());
+                            if (existingCustomer) {
+                                e.target.setCustomValidity('A customer with this email already exists');
+                                e.target.classList.add('is-invalid');
+                                const feedback = e.target.parentNode.querySelector('.invalid-feedback');
+                                if (feedback) {
+                                    feedback.textContent = `Customer "${existingCustomer.name}" already uses this email address`;
+                                }
+                            } else {
+                                e.target.setCustomValidity('');
+                                e.target.classList.remove('is-invalid');
+                            }
+                        })
+                        .catch(error => {
+                            console.log('Email validation check failed:', error);
+                        });
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

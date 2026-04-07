@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>User Details - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/admin/users">User Management</a></li>
+                        <li class="breadcrumb-item active" th:text="${user.firstName + ' ' + user.lastName}">User Name</li>
+                    </ol>
+                </nav>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-person-circle"></i> <span th:text="${user.firstName + ' ' + user.lastName}">User Name</span>
+                        </h1>
+                        <p class="text-muted mb-0">
+                            <span class="badge" 
+                                  th:classappend="${user.role.name() == 'ADMIN' ? 'bg-danger' : 
+                                                   user.role.name() == 'SALES' ? 'bg-success' : 'bg-secondary'}"
+                                  th:text="${user.role.name()}">Role</span>
+                            <span class="badge ms-2" 
+                                  th:classappend="${user.active ? 'bg-success' : 'bg-danger'}"
+                                  th:text="${user.active ? 'Active' : 'Inactive'}">Status</span>
+                        </p>
+                    </div>
+                    <div>
+                        <a href="/admin/users" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Information -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> User Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Full Name:</dt>
+                                    <dd class="col-sm-8" th:text="${user.firstName + ' ' + user.lastName}">Full Name</dd>
+                                    
+                                    <dt class="col-sm-4">Username:</dt>
+                                    <dd class="col-sm-8">
+                                        <code th:text="${user.username}">username</code>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Email:</dt>
+                                    <dd class="col-sm-8">
+                                        <a th:href="'mailto:' + ${user.email}" th:text="${user.email}">email@example.com</a>
+                                    </dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-4">Role:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge" 
+                                              th:classappend="${user.role.name() == 'ADMIN' ? 'bg-danger' : 
+                                                               user.role.name() == 'SALES' ? 'bg-success' : 'bg-secondary'}"
+                                              th:text="${user.role.name()}">Role</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Status:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge" 
+                                              th:classappend="${user.active ? 'bg-success' : 'bg-danger'}"
+                                              th:text="${user.active ? 'Active' : 'Inactive'}">Status</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">User ID:</dt>
+                                    <dd class="col-sm-8">
+                                        <code th:text="${user.id}">1</code>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightning"></i> Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-gear"></i> Change Role
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li th:each="role : ${userRoles}">
+                                        <a class="dropdown-item" href="#" 
+                                           th:onclick="'changeUserRole(' + ${user.id} + ', \'' + ${role} + '\')'"
+                                           th:classappend="${user.role == role ? 'active' : ''}"
+                                           th:text="${role.name()}">Role</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <button type="button" 
+                                    class="btn" 
+                                    th:classappend="${user.active ? 'btn-outline-warning' : 'btn-outline-success'}"
+                                    th:onclick="'toggleUserStatus(' + ${user.id} + ', ' + ${!user.active} + ')'">
+                                <i th:class="${user.active ? 'bi bi-pause-circle' : 'bi bi-play-circle'}"></i>
+                                <span th:text="${user.active ? 'Deactivate User' : 'Activate User'}">Toggle Status</span>
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-info" onclick="resetPassword()">
+                                <i class="bi bi-key"></i> Reset Password
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-secondary" onclick="sendWelcomeEmail()">
+                                <i class="bi bi-envelope"></i> Send Welcome Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account History -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history"></i> Account History
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-5">Created:</dt>
+                                    <dd class="col-sm-7" th:text="${#temporals.format(user.createdAt, 'MMM dd, yyyy HH:mm')}">Date</dd>
+                                    
+                                    <dt class="col-sm-5">Last Login:</dt>
+                                    <dd class="col-sm-7">
+                                        <span th:if="${user.lastLogin}" th:text="${#temporals.format(user.lastLogin, 'MMM dd, yyyy HH:mm')}">Date</span>
+                                        <span th:unless="${user.lastLogin}" class="text-muted">Never logged in</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row">
+                                    <dt class="col-sm-5">Account Age:</dt>
+                                    <dd class="col-sm-7">
+                                        <span th:text="${#temporals.daysBetween(user.createdAt, #temporals.createNow())} + ' days'">Days</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-5">Login Status:</dt>
+                                    <dd class="col-sm-7">
+                                        <span th:if="${user.lastLogin and #temporals.daysBetween(user.lastLogin, #temporals.createNow()) < 7}" 
+                                              class="badge bg-success">Recently Active</span>
+                                        <span th:if="${user.lastLogin and #temporals.daysBetween(user.lastLogin, #temporals.createNow()) >= 7}" 
+                                              class="badge bg-warning">Inactive</span>
+                                        <span th:unless="${user.lastLogin}" class="badge bg-secondary">Never Logged In</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Summary -->
+        <div class="row mb-4" th:if="${activitySummary}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-activity"></i> Activity Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-0" th:text="${activitySummary.customersCreated ?: 0}">0</h4>
+                                    <small class="text-muted">Customers Created</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-success mb-0" th:text="${activitySummary.leadsCreated ?: 0}">0</h4>
+                                    <small class="text-muted">Leads Created</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-info mb-0" th:text="${activitySummary.salesCompleted ?: 0}">0</h4>
+                                    <small class="text-muted">Sales Completed</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-warning mb-0" th:text="${activitySummary.interactionsLogged ?: 0}">0</h4>
+                                <small class="text-muted">Interactions Logged</small>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3" th:if="${user.role.name() == 'SALES'}">
+                            <div class="col-12">
+                                <hr>
+                                <h6>Sales Performance</h6>
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <h5 class="text-success mb-0">
+                                            $<span th:text="${activitySummary.totalRevenue ?: '0.00'}">0.00</span>
+                                        </h5>
+                                        <small class="text-muted">Total Revenue</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h5 class="text-info mb-0" th:text="${activitySummary.conversionRate ?: '0'}">0</h5>
+                                        <small class="text-muted">Conversion Rate (%)</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h5 class="text-primary mb-0" th:text="${activitySummary.averageDealSize ?: '0.00'}">0.00</h5>
+                                        <small class="text-muted">Avg Deal Size</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Information -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning bg-opacity-10">
+                        <h6 class="card-title mb-0 text-warning">
+                            <i class="bi bi-shield-exclamation"></i> Security Information
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Account Security</h6>
+                                <ul class="mb-0">
+                                    <li>Password last changed: <span class="text-muted">Not tracked</span></li>
+                                    <li>Failed login attempts: <span class="text-muted">0 recent</span></li>
+                                    <li>Account locked: <span th:text="${user.active ? 'No' : 'Yes'}" th:class="${user.active ? 'text-success' : 'text-danger'}">Status</span></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Access Permissions</h6>
+                                <ul class="mb-0" th:switch="${user.role.name()}">
+                                    <div th:case="'ADMIN'">
+                                        <li class="text-danger">Full system access</li>
+                                        <li class="text-danger">User management</li>
+                                        <li class="text-danger">System configuration</li>
+                                        <li class="text-danger">All reports and analytics</li>
+                                    </div>
+                                    <div th:case="'SALES'">
+                                        <li class="text-success">Customer management</li>
+                                        <li class="text-success">Lead management</li>
+                                        <li class="text-success">Sales transactions</li>
+                                        <li class="text-success">Sales reports</li>
+                                    </div>
+                                    <div th:case="'REGULAR'">
+                                        <li class="text-info">View assigned customers</li>
+                                        <li class="text-info">Basic reporting</li>
+                                        <li class="text-muted">Limited system access</li>
+                                    </div>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="row" th:if="${user.id != currentUser.id}">
+            <div class="col-12">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger bg-opacity-10">
+                        <h6 class="card-title mb-0 text-danger">
+                            <i class="bi bi-exclamation-triangle"></i> Danger Zone
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Account Actions</h6>
+                                <p class="text-muted">These actions cannot be undone.</p>
+                                <button type="button" class="btn btn-outline-danger" onclick="permanentlyDeactivateUser()">
+                                    <i class="bi bi-person-x"></i> Permanently Deactivate
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Data Actions</h6>
+                                <p class="text-muted">Handle user data carefully.</p>
+                                <button type="button" class="btn btn-outline-warning" onclick="exportUserData()">
+                                    <i class="bi bi-download"></i> Export User Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            function changeUserRole(userId, newRole) {
+                if (confirm(`Change user role to ${newRole}?`)) {
+                    const formData = new FormData();
+                    formData.append('role', newRole);
+                    
+                    fetch(`/admin/users/${userId}/role`, {
+                        method: 'POST',
+                        headers: {
+                            [document.querySelector('meta[name="_csrf_header"]').content]: 
+                                document.querySelector('meta[name="_csrf"]').content
+                        },
+                        body: formData
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert('Error changing user role');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error changing user role:', error);
+                        alert('Error changing user role');
+                    });
+                }
+            }
+
+            function toggleUserStatus(userId, activate) {
+                const action = activate ? 'activate' : 'deactivate';
+                if (confirm(`Are you sure you want to ${action} this user?`)) {
+                    const formData = new FormData();
+                    formData.append('active', activate);
+                    
+                    fetch(`/admin/users/${userId}/status`, {
+                        method: 'POST',
+                        headers: {
+                            [document.querySelector('meta[name="_csrf_header"]').content]: 
+                                document.querySelector('meta[name="_csrf"]').content
+                        },
+                        body: formData
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert('Error updating user status');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating user status:', error);
+                        alert('Error updating user status');
+                    });
+                }
+            }
+
+            function resetPassword() {
+                if (confirm('Send password reset email to user?')) {
+                    alert('Password reset email would be sent to user');
+                    // Implementation would integrate with email service
+                }
+            }
+
+            function sendWelcomeEmail() {
+                if (confirm('Send welcome email to user?')) {
+                    alert('Welcome email would be sent to user');
+                    // Implementation would integrate with email service
+                }
+            }
+
+            function permanentlyDeactivateUser() {
+                const userName = '[[${user.firstName}]] [[${user.lastName}]]';
+                if (confirm(`PERMANENTLY deactivate ${userName}? This action cannot be undone.`)) {
+                    if (confirm('Are you absolutely sure? This will remove all access and cannot be reversed.')) {
+                        alert('Permanent deactivation would be processed');
+                        // Implementation would handle permanent deactivation
+                    }
+                }
+            }
+
+            function exportUserData() {
+                const userId = [[${user.id}]];
+                window.open(`/admin/users/${userId}/export`, '_blank');
+            }
+        </script>
+    </th:block>
+</body>
+</html>

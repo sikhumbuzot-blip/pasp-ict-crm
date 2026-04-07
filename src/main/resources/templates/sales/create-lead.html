@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Create Lead - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/sales/leads}">Leads</a></li>
+                <li class="breadcrumb-item active">Create New Lead</li>
+            </ol>
+        </nav>
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-person-plus"></i> Create New Lead
+                        </h1>
+                        <p class="text-muted mb-0">Add a new sales lead to your pipeline</p>
+                    </div>
+                    <div>
+                        <a th:href="@{/sales/leads}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Leads
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Lead Form -->
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> Lead Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/sales/leads/create}" method="post" id="createLeadForm" novalidate>
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="title" class="form-label">
+                                        Lead Title <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="title" 
+                                           name="title" 
+                                           placeholder="Enter a descriptive title for this lead"
+                                           required
+                                           maxlength="255">
+                                    <div class="invalid-feedback">
+                                        Please provide a lead title.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" 
+                                              id="description" 
+                                              name="description" 
+                                              rows="3"
+                                              placeholder="Provide additional details about this lead (optional)"
+                                              maxlength="1000"></textarea>
+                                    <div class="form-text">
+                                        <span id="descriptionCount">0</span>/1000 characters
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="customerId" class="form-label">
+                                        Customer <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="customerId" name="customerId" required>
+                                        <option value="">Select a customer...</option>
+                                        <option th:each="customer : ${customers}" 
+                                                th:value="${customer.id}" 
+                                                th:text="${customer.name + ' (' + customer.company + ')'}">
+                                            Customer Name (Company)
+                                        </option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select a customer.
+                                    </div>
+                                    <div class="form-text">
+                                        <a href="/customers/create" target="_blank" class="text-decoration-none">
+                                            <i class="bi bi-plus-circle"></i> Create new customer
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="estimatedValue" class="form-label">Estimated Value</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               id="estimatedValue" 
+                                               name="estimatedValue" 
+                                               placeholder="0.00"
+                                               min="0"
+                                               step="0.01"
+                                               max="999999999.99">
+                                    </div>
+                                    <div class="form-text">
+                                        Optional: Estimated potential value of this lead
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="assignedToId" class="form-label">Assign To</label>
+                                    <select class="form-select" id="assignedToId" name="assignedToId">
+                                        <option value="">Assign to sales user...</option>
+                                        <option th:each="user : ${salesUsers}" 
+                                                th:value="${user.id}" 
+                                                th:text="${user.firstName + ' ' + user.lastName + ' (' + user.username + ')'}"
+                                                th:selected="${user.id == currentUser?.id}">
+                                            User Name (username)
+                                        </option>
+                                    </select>
+                                    <div class="form-text">
+                                        Leave empty to assign to yourself
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Initial Status</label>
+                                    <div class="form-control-plaintext">
+                                        <span class="badge bg-primary">NEW</span>
+                                        <small class="text-muted ms-2">All new leads start with NEW status</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a th:href="@{/sales/leads}" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-circle"></i> Cancel
+                                        </a>
+                                        <button type="submit" class="btn btn-primary" id="submitButton">
+                                            <i class="bi bi-check-circle"></i> Create Lead
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help and Tips -->
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightbulb"></i> Tips for Creating Leads
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6><i class="bi bi-check-circle text-success"></i> Lead Title</h6>
+                            <p class="small text-muted">
+                                Use a clear, descriptive title that summarizes the opportunity. 
+                                Examples: "Website Redesign for ABC Corp", "Software License Renewal"
+                            </p>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6><i class="bi bi-check-circle text-success"></i> Customer Selection</h6>
+                            <p class="small text-muted">
+                                Choose the appropriate customer from the list. If the customer doesn't exist, 
+                                create a new customer record first.
+                            </p>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6><i class="bi bi-check-circle text-success"></i> Estimated Value</h6>
+                            <p class="small text-muted">
+                                Provide your best estimate of the potential deal value. This helps with 
+                                pipeline forecasting and prioritization.
+                            </p>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6><i class="bi bi-check-circle text-success"></i> Assignment</h6>
+                            <p class="small text-muted">
+                                Assign the lead to the most appropriate sales person. You can change 
+                                the assignment later if needed.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lead Status Flow -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-arrow-right-circle"></i> Lead Status Flow
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary me-2">NEW</span>
+                                <small>Initial status for all leads</small>
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-arrow-down text-muted"></i>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-info me-2">CONTACTED</span>
+                                <small>First contact made</small>
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-arrow-down text-muted"></i>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-warning me-2">QUALIFIED</span>
+                                <small>Lead meets criteria</small>
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-arrow-down text-muted"></i>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-secondary me-2">PROPOSAL</span>
+                                <small>Proposal sent</small>
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-arrow-down text-muted"></i>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-dark me-2">NEGOTIATION</span>
+                                <small>In negotiation</small>
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-arrow-down text-muted"></i>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-success me-2">CLOSED WON</span>
+                                    <small>Deal closed</small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-danger me-2">CLOSED LOST</span>
+                                    <small>Deal lost</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Form validation
+            (function() {
+                'use strict';
+                
+                const form = document.getElementById('createLeadForm');
+                const submitButton = document.getElementById('submitButton');
+                const originalButtonText = submitButton.innerHTML;
+                
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    } else {
+                        // Show loading state
+                        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Creating Lead...';
+                        submitButton.disabled = true;
+                    }
+                    
+                    form.classList.add('was-validated');
+                }, false);
+                
+                // Re-enable button if form submission fails
+                window.addEventListener('beforeunload', function() {
+                    submitButton.innerHTML = originalButtonText;
+                    submitButton.disabled = false;
+                });
+            })();
+
+            // Character counter for description
+            const descriptionField = document.getElementById('description');
+            const descriptionCount = document.getElementById('descriptionCount');
+            
+            descriptionField.addEventListener('input', function() {
+                const count = this.value.length;
+                descriptionCount.textContent = count;
+                
+                if (count > 900) {
+                    descriptionCount.parentElement.classList.add('text-warning');
+                } else {
+                    descriptionCount.parentElement.classList.remove('text-warning');
+                }
+            });
+
+            // Customer search functionality
+            const customerSelect = document.getElementById('customerId');
+            
+            // Add search functionality to customer dropdown
+            customerSelect.addEventListener('focus', function() {
+                // Could implement typeahead search here
+            });
+
+            // Auto-assign to current user if no assignment selected
+            document.getElementById('createLeadForm').addEventListener('submit', function(e) {
+                const assignedToSelect = document.getElementById('assignedToId');
+                if (!assignedToSelect.value) {
+                    // Find current user option and select it
+                    const currentUserOption = assignedToSelect.querySelector('option[selected]');
+                    if (currentUserOption) {
+                        assignedToSelect.value = currentUserOption.value;
+                    }
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + Enter to submit form
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('createLeadForm').requestSubmit();
+                }
+                
+                // Escape to cancel
+                if (e.key === 'Escape') {
+                    if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+                        window.location.href = '/sales/leads';
+                    }
+                }
+            });
+
+            // Warn about unsaved changes
+            let formChanged = false;
+            const formInputs = document.querySelectorAll('#createLeadForm input, #createLeadForm select, #createLeadForm textarea');
+            
+            formInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    formChanged = true;
+                });
+            });
+
+            window.addEventListener('beforeunload', function(e) {
+                if (formChanged) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+
+            // Clear warning when form is submitted
+            document.getElementById('createLeadForm').addEventListener('submit', function() {
+                formChanged = false;
+            });
+        </script>
+    </th:block>
+</body>
+</html>

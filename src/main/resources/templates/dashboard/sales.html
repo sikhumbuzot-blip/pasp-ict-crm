@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Sales Dashboard - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-graph-up"></i> Sales Dashboard
+                        </h1>
+                        <p class="text-muted mb-0">
+                            Welcome back, <span th:text="${currentUser?.firstName}">User</span>! 
+                            Here's your sales performance overview.
+                        </p>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary">Sales User</span>
+                        <small class="text-muted ms-2" id="lastUpdated">Last updated: Now</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Performance Metrics -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card metric-card h-100">
+                    <div class="card-body text-center">
+                        <div class="metric-value" th:text="${individualMetrics?.totalSales ?: 0}">0</div>
+                        <h6 class="card-title">Total Sales</h6>
+                        <p class="card-text">
+                            <i class="bi bi-arrow-up"></i>
+                            <span th:text="${individualMetrics?.salesGrowth ?: '0'}">0</span>% this month
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card card-stats h-100">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="card-title text-uppercase text-muted mb-0">Revenue</h5>
+                                <span class="h2 font-weight-bold mb-0">
+                                    $<span th:text="${#numbers.formatDecimal(individualMetrics?.totalRevenue ?: 0, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                </span>
+                            </div>
+                            <div class="col-auto">
+                                <div class="icon icon-shape bg-success text-white rounded-circle shadow">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mt-3 mb-0 text-sm">
+                            <span class="text-success mr-2">
+                                <i class="bi bi-arrow-up"></i>
+                                <span th:text="${individualMetrics?.revenueGrowth ?: '0'}">0</span>%
+                            </span>
+                            <span class="text-nowrap">vs last month</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card card-stats h-100">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="card-title text-uppercase text-muted mb-0">Assigned Leads</h5>
+                                <span class="h2 font-weight-bold mb-0" th:text="${assignedLeads?.size() ?: 0}">0</span>
+                            </div>
+                            <div class="col-auto">
+                                <div class="icon icon-shape bg-warning text-white rounded-circle shadow">
+                                    <i class="bi bi-person-plus"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mt-3 mb-0 text-sm">
+                            <span class="text-warning mr-2">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <span th:text="${openLeadsCount ?: 0}">0</span>
+                            </span>
+                            <span class="text-nowrap">Need attention</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card card-stats h-100">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="card-title text-uppercase text-muted mb-0">Conversion Rate</h5>
+                                <span class="h2 font-weight-bold mb-0">
+                                    <span th:text="${individualMetrics?.conversionRate ?: '0'}">0</span>%
+                                </span>
+                            </div>
+                            <div class="col-auto">
+                                <div class="icon icon-shape bg-info text-white rounded-circle shadow">
+                                    <i class="bi bi-funnel"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mt-3 mb-0 text-sm">
+                            <span class="text-info mr-2">
+                                <i class="bi bi-target"></i>
+                                <span th:text="${individualMetrics?.target ?: '25'}">25</span>%
+                            </span>
+                            <span class="text-nowrap">Target rate</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Leads and Sales -->
+        <div class="row mb-4">
+            <div class="col-xl-8 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person-plus"></i> My Assigned Leads
+                            </h5>
+                            <a href="/sales/leads" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" th:if="${assignedLeads and !assignedLeads.empty}">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Lead</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Value</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="lead : ${assignedLeads}" th:if="${leadStat.index < 5}">
+                                        <td>
+                                            <strong th:text="${lead.title}">Lead Title</strong>
+                                            <br>
+                                            <small class="text-muted" th:text="${lead.description}">Description</small>
+                                        </td>
+                                        <td>
+                                            <span th:text="${lead.customer?.name}">Customer Name</span>
+                                            <br>
+                                            <small class="text-muted" th:text="${lead.customer?.company}">Company</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge status-badge" 
+                                                  th:classappend="${lead.status.name() == 'NEW' ? 'bg-primary' : 
+                                                                   lead.status.name() == 'CONTACTED' ? 'bg-info' :
+                                                                   lead.status.name() == 'QUALIFIED' ? 'bg-warning' :
+                                                                   lead.status.name() == 'PROPOSAL' ? 'bg-secondary' :
+                                                                   lead.status.name() == 'NEGOTIATION' ? 'bg-dark' :
+                                                                   lead.status.name() == 'CLOSED_WON' ? 'bg-success' : 'bg-danger'}"
+                                                  th:text="${lead.status.name()}">Status</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${lead.estimatedValue}">
+                                                $<span th:text="${#numbers.formatDecimal(lead.estimatedValue, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                            </span>
+                                            <span th:unless="${lead.estimatedValue}" class="text-muted">-</span>
+                                        </td>
+                                        <td>
+                                            <small th:text="${#temporals.format(lead.createdAt, 'MMM dd')}">Date</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a th:href="@{/sales/leads/{id}(id=${lead.id})}" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a th:href="@{/sales/leads/{id}/convert(id=${lead.id})}" 
+                                                   class="btn btn-outline-success btn-sm"
+                                                   th:if="${!lead.closed}">
+                                                    <i class="bi bi-arrow-right-circle"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div th:unless="${assignedLeads and !assignedLeads.empty}" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-2">No leads assigned to you yet.</p>
+                            <a href="/sales/leads/create" class="btn btn-primary">Create New Lead</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up"></i> Performance Chart
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="performanceChart" width="300" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Sales -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-receipt"></i> Recent Sales
+                            </h5>
+                            <a href="/sales/transactions" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" th:if="${recentSales and !recentSales.empty}">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="sale : ${recentSales}" th:if="${saleStat.index < 5}">
+                                        <td>
+                                            <strong th:text="${sale.customer?.name}">Customer Name</strong>
+                                            <br>
+                                            <small class="text-muted" th:text="${sale.customer?.company}">Company</small>
+                                        </td>
+                                        <td>
+                                            <strong class="text-success">
+                                                $<span th:text="${#numbers.formatDecimal(sale.amount, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            <span th:text="${#temporals.format(sale.saleDate, 'MMM dd, yyyy')}">Date</span>
+                                        </td>
+                                        <td>
+                                            <span th:text="${sale.description ?: 'Direct sale'}">Description</span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/sales/transactions/{id}(id=${sale.id})}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div th:unless="${recentSales and !recentSales.empty}" class="text-center text-muted py-4">
+                            <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+                            <p class="mt-2">No sales recorded yet.</p>
+                            <a href="/sales/transactions/create" class="btn btn-success">Record New Sale</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightning"></i> Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <a href="/sales/leads/create" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-person-plus"></i>
+                                    <br>Create Lead
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <a href="/sales/transactions/create" class="btn btn-outline-success w-100">
+                                    <i class="bi bi-receipt"></i>
+                                    <br>Record Sale
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <a href="/customers/create" class="btn btn-outline-info w-100">
+                                    <i class="bi bi-person-badge"></i>
+                                    <br>Add Customer
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <button class="btn btn-outline-warning w-100" onclick="refreshDashboard()">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    <br>Refresh Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Performance Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            const performanceChart = new Chart(performanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Closed Won', 'In Progress', 'Closed Lost'],
+                    datasets: [{
+                        data: [
+                            /*[[${individualMetrics?.closedWon ?: 0}]]*/ 15,
+                            /*[[${individualMetrics?.inProgress ?: 0}]]*/ 8,
+                            /*[[${individualMetrics?.closedLost ?: 0}]]*/ 3
+                        ],
+                        backgroundColor: [
+                            '#28a745',
+                            '#ffc107',
+                            '#dc3545'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Auto-refresh dashboard every 5 minutes
+            setInterval(function() {
+                refreshDashboard();
+            }, 300000);
+
+            // Refresh dashboard function
+            function refreshDashboard() {
+                fetch('/dashboard/sales-performance', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Update performance metrics
+                    updatePerformanceMetrics(data);
+                    // Update timestamp
+                    document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+                })
+                .catch(error => {
+                    console.error('Error refreshing dashboard:', error);
+                });
+            }
+
+            function updatePerformanceMetrics(data) {
+                // Update performance chart and metrics
+                if (data && Object.keys(data).length > 0) {
+                    const userKey = Object.keys(data)[0];
+                    const userMetrics = data[userKey];
+                    
+                    // Update chart data
+                    performanceChart.data.datasets[0].data = [
+                        userMetrics.closedWon || 0,
+                        userMetrics.inProgress || 0,
+                        userMetrics.closedLost || 0
+                    ];
+                    performanceChart.update();
+                }
+            }
+
+            // Lead status update via AJAX
+            function updateLeadStatus(leadId, newStatus) {
+                const formData = new FormData();
+                formData.append('status', newStatus);
+                
+                fetch(`/sales/leads/${leadId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error updating lead status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating lead status:', error);
+                    alert('Error updating lead status');
+                });
+            }
+        </script>
+    </th:block>
+</body>
+</html>

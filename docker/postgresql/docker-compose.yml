@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  postgresql:
+    image: postgres:15-alpine
+    container_name: sales-crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crmdb
+      POSTGRES_USER: crmuser
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-crmpass}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+      - ./backups:/backups
+      - ./logs:/var/log/postgresql
+    networks:
+      - sales-crm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crmuser -d crmdb"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: sales-crm-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@salescrm.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8081:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - sales-crm-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  sales-crm-app:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: sales-crm-application
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      DB_NAME: crmdb
+      DB_USERNAME: crmuser
+      DB_PASSWORD: ${DB_PASSWORD:-crmpass}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-defaultEncryptionKey123456789012}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    ports:
+      - "8080:8080"
+    volumes:
+      - app_logs:/app/logs
+      - app_backups:/app/backups
+    networks:
+      - sales-crm-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_backups:
+    driver: local
+
+networks:
+  sales-crm-network:
+    driver: bridge

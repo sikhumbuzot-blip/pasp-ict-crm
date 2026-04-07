@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Transaction Details - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/sales/transactions}">Transactions</a></li>
+                <li class="breadcrumb-item active">Transaction Details</li>
+            </ol>
+        </nav>
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="h3 mb-2">
+                            <i class="bi bi-receipt"></i> Transaction Details
+                        </h1>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-success fs-6">
+                                $<span th:text="${#numbers.formatDecimal(transaction?.amount, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                            </span>
+                            <span class="text-muted">
+                                <span th:text="${#temporals.format(transaction?.saleDate, 'MMM dd, yyyy')}">Date</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a th:href="@{/sales/transactions}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Transactions
+                        </a>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-gear"></i> Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" th:href="@{/customers/{id}(id=${transaction?.customer?.id})}">
+                                        <i class="bi bi-person"></i> View Customer
+                                    </a>
+                                </li>
+                                <li th:if="${transaction?.lead}">
+                                    <a class="dropdown-item" th:href="@{/sales/leads/{id}(id=${transaction?.lead?.id})}">
+                                        <i class="bi bi-arrow-right-circle"></i> View Related Lead
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="printTransaction()">
+                                        <i class="bi bi-printer"></i> Print Receipt
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="exportTransaction('pdf')">
+                                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Transaction Information -->
+            <div class="col-lg-8 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> Transaction Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Transaction ID:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="font-monospace" th:text="${transaction?.id}">Transaction ID</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Amount:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="h4 text-success">
+                                    $<span th:text="${#numbers.formatDecimal(transaction?.amount, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Sale Date:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span th:text="${#temporals.format(transaction?.saleDate, 'MMM dd, yyyy HH:mm')}">Sale Date</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${transaction?.description}">
+                            <div class="col-sm-3">
+                                <strong>Description:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <p th:text="${transaction?.description}">Transaction description</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Sales Representative:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    <div>
+                                        <span th:text="${transaction?.salesUser?.firstName + ' ' + transaction?.salesUser?.lastName}">Sales User</span>
+                                        <br>
+                                        <small class="text-muted" th:text="${transaction?.salesUser?.email}">email@example.com</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${transaction?.lead}">
+                            <div class="col-sm-3">
+                                <strong>Source Lead:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-arrow-right-circle text-success me-2"></i>
+                                    <div>
+                                        <a th:href="@{/sales/leads/{id}(id=${transaction?.lead?.id})}" 
+                                           class="text-decoration-none"
+                                           th:text="${transaction?.lead?.title}">Lead Title</a>
+                                        <br>
+                                        <small class="text-muted">Converted from lead</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:unless="${transaction?.lead}">
+                            <div class="col-sm-3">
+                                <strong>Sale Type:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="badge bg-info">
+                                    <i class="bi bi-plus-circle"></i> Direct Sale
+                                </span>
+                                <br>
+                                <small class="text-muted">Created directly without lead conversion</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person-badge"></i> Customer
+                            </h5>
+                            <a th:href="@{/customers/{id}(id=${transaction?.customer?.id})}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View Profile
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="bi bi-person-circle" style="font-size: 3rem; color: #6c757d;"></i>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Name:</strong>
+                            <br>
+                            <span th:text="${transaction?.customer?.name}">Customer Name</span>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${transaction?.customer?.company}">
+                            <strong>Company:</strong>
+                            <br>
+                            <span th:text="${transaction?.customer?.company}">Company Name</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Email:</strong>
+                            <br>
+                            <a th:href="'mailto:' + ${transaction?.customer?.email}" 
+                               th:text="${transaction?.customer?.email}">email@example.com</a>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${transaction?.customer?.phone}">
+                            <strong>Phone:</strong>
+                            <br>
+                            <a th:href="'tel:' + ${transaction?.customer?.phone}" 
+                               th:text="${transaction?.customer?.phone}">Phone Number</a>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${transaction?.customer?.address}">
+                            <strong>Address:</strong>
+                            <br>
+                            <span th:text="${transaction?.customer?.address}">Address</span>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/customers/{id}/interactions(id=${transaction?.customer?.id})}" 
+                               class="btn btn-outline-info btn-sm">
+                                <i class="bi bi-chat-dots"></i> View Interactions
+                            </a>
+                            <a th:href="@{/sales/transactions?customerId={id}(id=${transaction?.customer?.id})}" 
+                               class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-receipt"></i> Customer Sales History
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Receipt -->
+        <div class="row" id="transactionReceipt">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-receipt-cutoff"></i> Transaction Receipt
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Sales CRM Application</h6>
+                                <p class="text-muted mb-0">
+                                    Transaction Receipt<br>
+                                    Generated: <span th:text="${#temporals.format(#temporals.createNow(), 'MMM dd, yyyy HH:mm')}">Now</span>
+                                </p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <h6>Transaction #<span th:text="${transaction?.id}">ID</span></h6>
+                                <p class="text-muted mb-0">
+                                    Date: <span th:text="${#temporals.format(transaction?.saleDate, 'MMM dd, yyyy')}">Date</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Bill To:</h6>
+                                <address>
+                                    <strong th:text="${transaction?.customer?.name}">Customer Name</strong><br>
+                                    <span th:if="${transaction?.customer?.company}" th:text="${transaction?.customer?.company}">Company</span><br th:if="${transaction?.customer?.company}">
+                                    <span th:if="${transaction?.customer?.address}" th:text="${transaction?.customer?.address}">Address</span><br th:if="${transaction?.customer?.address}">
+                                    <span th:text="${transaction?.customer?.email}">Email</span><br>
+                                    <span th:if="${transaction?.customer?.phone}" th:text="${transaction?.customer?.phone}">Phone</span>
+                                </address>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <h6>Sales Representative:</h6>
+                                <address>
+                                    <strong th:text="${transaction?.salesUser?.firstName + ' ' + transaction?.salesUser?.lastName}">Sales User</strong><br>
+                                    <span th:text="${transaction?.salesUser?.email}">Email</span>
+                                </address>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-borderless">
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td th:text="${transaction?.description ?: 'Sale Transaction'}">Description</td>
+                                        <td class="text-end">
+                                            $<span th:text="${#numbers.formatDecimal(transaction?.amount, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-active">
+                                        <th>Total</th>
+                                        <th class="text-end">
+                                            $<span th:text="${#numbers.formatDecimal(transaction?.amount, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <p class="text-muted">Thank you for your business!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Print transaction receipt
+            function printTransaction() {
+                const printContent = document.getElementById('transactionReceipt').innerHTML;
+                const originalContent = document.body.innerHTML;
+                
+                document.body.innerHTML = `
+                    <div style="padding: 20px;">
+                        <h2>Sales CRM - Transaction Receipt</h2>
+                        ${printContent}
+                    </div>
+                `;
+                
+                window.print();
+                document.body.innerHTML = originalContent;
+                location.reload();
+            }
+
+            // Export transaction
+            function exportTransaction(format) {
+                const transactionId = /*[[${transaction?.id}]]*/ '1';
+                window.open(`/sales/transactions/${transactionId}/export?format=${format}`, '_blank');
+            }
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + B to go back to transactions
+                if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    window.location.href = '/sales/transactions';
+                }
+                
+                // Ctrl/Cmd + P to print
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    printTransaction();
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Lead Details - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/sales/leads}">Leads</a></li>
+                <li class="breadcrumb-item active" th:text="${lead?.title}">Lead Details</li>
+            </ol>
+        </nav>
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="h3 mb-2" th:text="${lead?.title}">Lead Title</h1>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge status-badge fs-6" 
+                                  th:classappend="${lead?.status?.name() == 'NEW' ? 'bg-primary' : 
+                                                   lead?.status?.name() == 'CONTACTED' ? 'bg-info' :
+                                                   lead?.status?.name() == 'QUALIFIED' ? 'bg-warning' :
+                                                   lead?.status?.name() == 'PROPOSAL' ? 'bg-secondary' :
+                                                   lead?.status?.name() == 'NEGOTIATION' ? 'bg-dark' :
+                                                   lead?.status?.name() == 'CLOSED_WON' ? 'bg-success' : 'bg-danger'}"
+                                  th:text="${lead?.status?.name()}">Status</span>
+                            <span class="text-muted">
+                                Created <span th:text="${#temporals.format(lead?.createdAt, 'MMM dd, yyyy')}">Date</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a th:href="@{/sales/leads}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Leads
+                        </a>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-gear"></i> Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li th:if="${!lead?.closed}">
+                                    <a class="dropdown-item" th:href="@{/sales/leads/{id}/convert(id=${lead?.id})}">
+                                        <i class="bi bi-arrow-right-circle"></i> Convert to Sale
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li th:each="transition : ${validTransitions}">
+                                    <a class="dropdown-item" href="#" 
+                                       th:onclick="'updateLeadStatus(' + ${lead?.id} + ', \'' + ${transition} + '\')'">
+                                        <i class="bi bi-arrow-right"></i>
+                                        <span th:text="'Mark as ' + ${transition}">Update Status</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Lead Information -->
+            <div class="col-lg-8 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle"></i> Lead Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Title:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span th:text="${lead?.title}">Lead Title</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${lead?.description}">
+                            <div class="col-sm-3">
+                                <strong>Description:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <p th:text="${lead?.description}">Lead description</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Status:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="badge status-badge" 
+                                      th:classappend="${lead?.status?.name() == 'NEW' ? 'bg-primary' : 
+                                                       lead?.status?.name() == 'CONTACTED' ? 'bg-info' :
+                                                       lead?.status?.name() == 'QUALIFIED' ? 'bg-warning' :
+                                                       lead?.status?.name() == 'PROPOSAL' ? 'bg-secondary' :
+                                                       lead?.status?.name() == 'NEGOTIATION' ? 'bg-dark' :
+                                                       lead?.status?.name() == 'CLOSED_WON' ? 'bg-success' : 'bg-danger'}"
+                                      th:text="${lead?.status?.name()}">Status</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${lead?.estimatedValue}">
+                            <div class="col-sm-3">
+                                <strong>Estimated Value:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span class="h5 text-success">
+                                    $<span th:text="${#numbers.formatDecimal(lead?.estimatedValue, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${lead?.assignedTo}">
+                            <div class="col-sm-3">
+                                <strong>Assigned To:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    <div>
+                                        <span th:text="${lead?.assignedTo?.firstName + ' ' + lead?.assignedTo?.lastName}">Assigned User</span>
+                                        <br>
+                                        <small class="text-muted" th:text="${lead?.assignedTo?.email}">email@example.com</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
+                                <strong>Created:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span th:text="${#temporals.format(lead?.createdAt, 'MMM dd, yyyy HH:mm')}">Creation Date</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" th:if="${lead?.updatedAt}">
+                            <div class="col-sm-3">
+                                <strong>Last Updated:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <span th:text="${#temporals.format(lead?.updatedAt, 'MMM dd, yyyy HH:mm')}">Update Date</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person-badge"></i> Customer
+                            </h5>
+                            <a th:href="@{/customers/{id}(id=${lead?.customer?.id})}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View Profile
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="bi bi-person-circle" style="font-size: 3rem; color: #6c757d;"></i>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Name:</strong>
+                            <br>
+                            <span th:text="${lead?.customer?.name}">Customer Name</span>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${lead?.customer?.company}">
+                            <strong>Company:</strong>
+                            <br>
+                            <span th:text="${lead?.customer?.company}">Company Name</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Email:</strong>
+                            <br>
+                            <a th:href="'mailto:' + ${lead?.customer?.email}" th:text="${lead?.customer?.email}">email@example.com</a>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${lead?.customer?.phone}">
+                            <strong>Phone:</strong>
+                            <br>
+                            <a th:href="'tel:' + ${lead?.customer?.phone}" th:text="${lead?.customer?.phone}">Phone Number</a>
+                        </div>
+                        
+                        <div class="mb-3" th:if="${lead?.customer?.address}">
+                            <strong>Address:</strong>
+                            <br>
+                            <span th:text="${lead?.customer?.address}">Address</span>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <a th:href="@{/customers/{id}/interactions(id=${lead?.customer?.id})}" 
+                               class="btn btn-outline-info btn-sm">
+                                <i class="bi bi-chat-dots"></i> View Interactions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Transactions -->
+        <div class="row" th:if="${transactions and !transactions.empty}">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-receipt"></i> Related Sales Transactions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Sales User</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="transaction : ${transactions}">
+                                        <td>
+                                            <strong class="text-success">
+                                                $<span th:text="${#numbers.formatDecimal(transaction.amount, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            <span th:text="${#temporals.format(transaction.saleDate, 'MMM dd, yyyy')}">Date</span>
+                                        </td>
+                                        <td>
+                                            <span th:text="${transaction.description ?: 'Direct sale'}">Description</span>
+                                        </td>
+                                        <td>
+                                            <span th:text="${transaction.salesUser?.firstName + ' ' + transaction.salesUser?.lastName}">Sales User</span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/sales/transactions/{id}(id=${transaction.id})}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Update Modal -->
+        <div class="modal fade" id="statusUpdateModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Update Lead Status</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to update the lead status?</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Current Status:</strong> <span th:text="${lead?.status?.name()}">Current</span>
+                            <br>
+                            <strong>New Status:</strong> <span id="newStatusText">New</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirmStatusUpdate">Update Status</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let pendingStatusUpdate = null;
+
+            // Update lead status function
+            function updateLeadStatus(leadId, newStatus) {
+                pendingStatusUpdate = { leadId, newStatus };
+                document.getElementById('newStatusText').textContent = newStatus;
+                new bootstrap.Modal(document.getElementById('statusUpdateModal')).show();
+            }
+
+            // Confirm status update
+            document.getElementById('confirmStatusUpdate').addEventListener('click', function() {
+                if (!pendingStatusUpdate) return;
+
+                const { leadId, newStatus } = pendingStatusUpdate;
+                const button = this;
+                const originalText = button.innerHTML;
+                
+                button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Updating...';
+                button.disabled = true;
+
+                const formData = new FormData();
+                formData.append('status', newStatus);
+                
+                fetch(`/sales/leads/${leadId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        throw new Error('Failed to update status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating lead status:', error);
+                    alert('Error updating lead status. Please try again.');
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                });
+            });
+
+            // Auto-refresh every 5 minutes
+            setInterval(function() {
+                // Only refresh if no modals are open
+                if (!document.querySelector('.modal.show')) {
+                    location.reload();
+                }
+            }, 300000);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + B to go back to leads
+                if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    window.location.href = '/sales/leads';
+                }
+                
+                // Ctrl/Cmd + Enter to convert lead (if not closed)
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    const convertLink = document.querySelector('a[href*="/convert"]');
+                    if (convertLink) {
+                        window.location.href = convertLink.href;
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

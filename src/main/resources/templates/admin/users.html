@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>User Management - Sales CRM</title>
+    <th:block layout:fragment="head-extra">
+        <meta name="_csrf" th:content="${_csrf.token}"/>
+        <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    </th:block>
+</head>
+<body>
+    <th:block layout:fragment="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="h3 mb-0">
+                            <i class="bi bi-people"></i> User Management
+                        </h1>
+                        <p class="text-muted mb-0">Manage system users and their roles</p>
+                    </div>
+                    <div>
+                        <a href="/admin/users/create" class="btn btn-primary">
+                            <i class="bi bi-person-plus"></i> Create New User
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="get" th:action="@{/admin/users}" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="role" class="form-label">Filter by Role</label>
+                                <select class="form-select" id="role" name="role">
+                                    <option value="">All Roles</option>
+                                    <option th:each="role : ${userRoles}" 
+                                            th:value="${role}" 
+                                            th:text="${role.name()}"
+                                            th:selected="${selectedRole == role}">Role</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label for="active" class="form-label">Filter by Status</label>
+                                <select class="form-select" id="active" name="active">
+                                    <option value="">All Users</option>
+                                    <option value="true" th:selected="${selectedActive == true}">Active Only</option>
+                                    <option value="false" th:selected="${selectedActive == false}">Inactive Only</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-outline-primary">
+                                        <i class="bi bi-funnel"></i> Apply Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list"></i> 
+                            System Users 
+                            <span class="badge bg-primary ms-2" th:text="${users?.size() ?: 0}">0</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive" th:if="${users and !users.empty}">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Contact</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Last Login</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="user : ${users}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
+                                                <div>
+                                                    <strong th:text="${user.firstName + ' ' + user.lastName}">Full Name</strong>
+                                                    <br>
+                                                    <small class="text-muted">@<span th:text="${user.username}">username</span></small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <i class="bi bi-envelope"></i>
+                                            <a th:href="'mailto:' + ${user.email}" th:text="${user.email}">email@example.com</a>
+                                        </td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:classappend="${user.role.name() == 'ADMIN' ? 'bg-danger' : 
+                                                                   user.role.name() == 'SALES' ? 'bg-success' : 'bg-secondary'}"
+                                                  th:text="${user.role.name()}">Role</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:classappend="${user.active ? 'bg-success' : 'bg-danger'}"
+                                                  th:text="${user.active ? 'Active' : 'Inactive'}">Status</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${user.lastLogin}" th:text="${#temporals.format(user.lastLogin, 'MMM dd, yyyy HH:mm')}">Last Login</span>
+                                            <span th:unless="${user.lastLogin}" class="text-muted">Never</span>
+                                        </td>
+                                        <td>
+                                            <span th:text="${#temporals.format(user.createdAt, 'MMM dd, yyyy')}">Created Date</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a th:href="@{/admin/users/{id}(id=${user.id})}" 
+                                                   class="btn btn-outline-primary" 
+                                                   title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button type="button" 
+                                                            class="btn btn-outline-secondary dropdown-toggle" 
+                                                            data-bs-toggle="dropdown">
+                                                        <i class="bi bi-gear"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" th:href="@{/admin/users/{id}(id=${user.id})}">
+                                                                <i class="bi bi-eye"></i> View Details
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li th:if="${user.active}">
+                                                            <a class="dropdown-item text-warning" href="#" 
+                                                               th:onclick="'updateUserStatus(' + ${user.id} + ', false)'">
+                                                                <i class="bi bi-pause-circle"></i> Deactivate
+                                                            </a>
+                                                        </li>
+                                                        <li th:unless="${user.active}">
+                                                            <a class="dropdown-item text-success" href="#" 
+                                                               th:onclick="'updateUserStatus(' + ${user.id} + ', true)'">
+                                                                <i class="bi bi-play-circle"></i> Activate
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div th:unless="${users and !users.empty}" class="text-center text-muted py-5">
+                            <i class="bi bi-people" style="font-size: 4rem;"></i>
+                            <h4 class="mt-3">No users found</h4>
+                            <p>No users match the selected criteria.</p>
+                            <div class="mt-3">
+                                <a href="/admin/users/create" class="btn btn-primary">
+                                    <i class="bi bi-person-plus"></i> Create New User
+                                </a>
+                                <a href="/admin/users" class="btn btn-outline-secondary ms-2">
+                                    <i class="bi bi-arrow-left"></i> View All Users
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            function updateUserStatus(userId, active) {
+                const action = active ? 'activate' : 'deactivate';
+                if (!confirm(`Are you sure you want to ${action} this user?`)) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('active', active);
+                
+                fetch(`/admin/users/${userId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        [document.querySelector('meta[name="_csrf_header"]').content]: 
+                            document.querySelector('meta[name="_csrf"]').content
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error updating user status');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating user status:', error);
+                    alert('Error updating user status');
+                });
+            }
+        </script>
+    </th:block>
+</body>
+</html>
