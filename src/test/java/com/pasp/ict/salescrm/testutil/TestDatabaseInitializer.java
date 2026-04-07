@@ -101,6 +101,7 @@ public class TestDatabaseInitializer {
      */
     @Transactional
     public void clearAllData() {
+        // Clear in reverse dependency order to avoid foreign key constraints
         auditLogRepository.deleteAll();
         interactionLogRepository.deleteAll();
         saleTransactionRepository.deleteAll();
@@ -108,10 +109,19 @@ public class TestDatabaseInitializer {
         customerRepository.deleteAll();
         userRepository.deleteAll();
         
+        // Clear collections
         testUsers.clear();
         testCustomers.clear();
         testLeads.clear();
         testSales.clear();
+        
+        // Force flush to ensure data is actually deleted
+        auditLogRepository.flush();
+        interactionLogRepository.flush();
+        saleTransactionRepository.flush();
+        leadRepository.flush();
+        customerRepository.flush();
+        userRepository.flush();
     }
     
     /**
