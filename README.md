@@ -13,7 +13,6 @@ A comprehensive web-based Customer Relationship Management system built with Spr
 
 ### Key URLs
 - **Application:** http://localhost:8080
-- **H2 Console (dev):** http://localhost:8080/h2-console
 - **API Endpoints:** http://localhost:8080/api/*
 
 ### Essential Commands
@@ -31,6 +30,30 @@ mvn test
 mvn clean package -DskipTests
 ```
 
+### Quick Setup (PostgreSQL)
+```bash
+# Setup PostgreSQL database
+./scripts/setup-postgresql.sh
+
+# Start application
+mvn spring-boot:run
+
+# Access at http://localhost:8080
+# Login: admin / admin123
+```
+
+### Alternative Setup Methods
+```bash
+# Docker deployment (includes PostgreSQL)
+cd docker/postgresql && docker-compose up -d
+
+# Manual PostgreSQL setup
+sudo apt install postgresql postgresql-contrib
+sudo -u postgres createdb crmdb_dev
+sudo -u postgres createuser crmuser
+# Then run: mvn spring-boot:run
+```
+
 ### Quick Setup (Docker)
 ```bash
 cd docker/postgresql
@@ -41,9 +64,6 @@ docker-compose up -d
 
 ### Emergency Procedures
 ```bash
-# Reset H2 database (development)
-rm -rf data/ && mvn spring-boot:run
-
 # Check application logs
 tail -f logs/sales-crm.log
 
@@ -58,14 +78,14 @@ pg_dump -h localhost -U crmuser crmdb > backup.sql
 - **Customer Data Management**: Complete customer profiles with interaction history
 - **Administrative Dashboard**: User management, system statistics, and reporting
 - **Security**: Authentication, authorization, data encryption, and audit logging
-- **Database Support**: H2 for development with PostgreSQL migration support
+- **Database Support**: PostgreSQL for all environments with H2 for testing only
 
 ## Technology Stack
 
 - **Framework**: Spring Boot 3.x
 - **Template Engine**: Thymeleaf
 - **Security**: Spring Security
-- **Database**: H2 (development) / PostgreSQL (production)
+- **Database**: PostgreSQL (production) / H2 (testing only)
 - **ORM**: Spring Data JPA with Hibernate
 - **Build Tool**: Maven
 - **Testing**: JUnit 5, Mockito, jqwik (property-based testing)
@@ -75,6 +95,7 @@ pg_dump -h localhost -U crmuser crmdb > backup.sql
 ### Prerequisites
 
 - Java 17 or higher
+- PostgreSQL 12 or higher
 - Maven 3.6 or higher
 
 ### Running the Application
@@ -85,14 +106,19 @@ pg_dump -h localhost -U crmuser crmdb > backup.sql
    cd pasp-ict-crm
    ```
 
-2. Run with Maven:
+2. Set up PostgreSQL database:
+   ```bash
+   ./scripts/setup-postgresql.sh
+   ```
+
+3. Run with Maven:
    ```bash
    mvn spring-boot:run
    ```
 
-3. Access the application:
+4. Access the application:
    - Application: http://localhost:8080
-   - H2 Console (dev): http://localhost:8080/h2-console
+   - Login: admin / admin123
 
 ### Development Mode
 
@@ -189,22 +215,22 @@ mvn spring-boot:run -Dspring.profiles.active=prod
 
 ### Environment Profiles
 
-- **dev**: Development environment with H2 database and debug logging
-- **test**: Testing environment with in-memory database
-- **prod**: Production environment with PostgreSQL
+- **default**: Production environment with PostgreSQL database
+- **dev**: Development environment with PostgreSQL and debug logging
+- **test**: Testing environment with H2 in-memory database
+- **prod**: Production environment with optimized PostgreSQL settings
 
 ### Database Configuration
 
-#### H2 (Development)
-- URL: `jdbc:h2:mem:crmdb`
-- Console: http://localhost:8080/h2-console
-- Username: `sa`
-- Password: `password`
+#### PostgreSQL (Default)
+- URL: `jdbc:postgresql://localhost:5432/crmdb_dev`
+- Username: Set via `DB_USERNAME` environment variable (default: crmuser)
+- Password: Set via `DB_PASSWORD` environment variable (default: crmpass)
 
-#### PostgreSQL (Production)
-- URL: `jdbc:postgresql://localhost:5432/crmdb`
-- Username: Set via `DB_USERNAME` environment variable
-- Password: Set via `DB_PASSWORD` environment variable
+#### H2 (Testing Only)
+- URL: `jdbc:h2:mem:testdb`
+- Used only for automated testing
+- Console: Not available in production builds
 
 ### PostgreSQL Migration
 
